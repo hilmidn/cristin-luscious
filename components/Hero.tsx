@@ -19,10 +19,8 @@ export default function Hero() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center z-10">
-        
         {/* Left Side: Brand & Call to Action (Text Content) */}
         <div className="lg:col-span-7 flex flex-col space-y-6 lg:space-y-8 text-left animate-[fade-in-up_1.2s_ease-out]">
-          
           <div className="space-y-2">
             {/* Signature Brand Flourish */}
             <span className="font-script text-3xl md:text-5xl text-zinc-300 font-light tracking-wide block">
@@ -47,7 +45,10 @@ export default function Hero() {
 
           {/* Description Paragraph */}
           <p className="max-w-lg font-sans text-sm md:text-base text-zinc-400 font-light leading-relaxed tracking-wide">
-            Where high gastronomy meets visual poetry. Every creation is meticulously handcrafted, blending premium imported ingredients with refined artistic aesthetics to sculpt the ultimate dessert indulgence.
+            Where high gastronomy meets visual poetry. Every creation is
+            meticulously handcrafted, blending premium imported ingredients with
+            refined artistic aesthetics to sculpt the ultimate dessert
+            indulgence.
           </p>
 
           {/* Interactive CTA Buttons */}
@@ -57,7 +58,10 @@ export default function Hero() {
               className="group px-8 py-4 bg-white text-black font-semibold text-xs uppercase tracking-widest hover:bg-black hover:text-white border border-white hover:border-zinc-800 transition-all duration-500 flex items-center justify-center space-x-3 rounded-none"
             >
               <span>Explore Creations</span>
-              <ArrowRight size={14} className="transform group-hover:translate-x-1.5 transition-transform duration-300" />
+              <ArrowRight
+                size={14}
+                className="transform group-hover:translate-x-1.5 transition-transform duration-300"
+              />
             </a>
             <a
               href="#signature"
@@ -83,12 +87,16 @@ export default function Hero() {
             />
             {/* Visual overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-            
+
             {/* Elegant Floating Tag on Image */}
             <div className="absolute bottom-6 left-6 right-6 p-6 bg-black/60 backdrop-blur-md border border-zinc-900 flex justify-between items-center">
               <div>
-                <p className="text-[10px] tracking-widest uppercase text-zinc-500">Signature Masterwork</p>
-                <p className="font-playfair text-lg text-white mt-1">Artisan Cheesecake</p>
+                <p className="text-[10px] tracking-widest uppercase text-zinc-500">
+                  Signature Masterwork
+                </p>
+                <p className="font-playfair text-lg text-white mt-1">
+                  Artisan Cheesecake
+                </p>
               </div>
               <span className="text-[10px] tracking-widest uppercase font-semibold px-2 py-1 bg-white text-black font-sans">
                 Featured
@@ -96,14 +104,18 @@ export default function Hero() {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Elegant Bottom Scroll Indicator */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 z-10 cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
         <a href="#about" className="flex flex-col items-center">
-          <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-500">Discover More</span>
-          <ChevronDown size={14} className="text-zinc-500 mt-1 animate-bounce" />
+          <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-500">
+            Discover More
+          </span>
+          <ChevronDown
+            size={14}
+            className="text-zinc-500 mt-1 animate-bounce"
+          />
         </a>
       </div>
     </section>

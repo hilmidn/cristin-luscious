@@ -27,7 +27,7 @@ export default function FeaturedCheesecake() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           
           {/* Left Column: Image with Luxury Overlay */}
-          <div className="lg:col-span-6 relative w-full aspect-square md:aspect-[4/3] lg:aspect-square">
+          <div className="lg:col-span-6 relative w-full aspect-square md:aspect-[4/3] lg:aspect-square" data-aos="fade-right">
             <div className="absolute inset-0 border border-zinc-900 -translate-x-4 -translate-y-4 -z-10" />
             <div className="relative w-full h-full overflow-hidden border border-zinc-800 group bg-zinc-950">
               <Image
@@ -48,7 +48,7 @@ export default function FeaturedCheesecake() {
           </div>
 
           {/* Right Column: Narrative & Product Merits */}
-          <div className="lg:col-span-6 flex flex-col space-y-6 lg:space-y-8">
+          <div className="lg:col-span-6 flex flex-col space-y-6 lg:space-y-8" data-aos="fade-left">
             <div>
               <span className="text-xs font-semibold tracking-[0.4em] uppercase text-zinc-500 block mb-3">
                 Our Legendary Masterwork
@@ -69,7 +69,7 @@ export default function FeaturedCheesecake() {
             {/* Merits Checklist */}
             <div className="space-y-3">
               {highlights.map((item, index) => (
-                <div key={index} className="flex items-start space-x-3">
+                <div key={index} className="flex items-start space-x-3" data-aos="fade-up" data-aos-delay={index * 80}>
                   <div className="mt-1 flex items-center justify-center w-4 h-4 rounded-full border border-white/40">
                     <Check size={10} className="text-white" />
                   </div>
@@ -81,7 +81,7 @@ export default function FeaturedCheesecake() {
             </div>
 
             {/* Call to action & price note */}
-            <div className="pt-6 border-t border-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="pt-6 border-t border-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6" data-aos="fade-up" data-aos-delay="400">
               <div>
                 <p className="text-[10px] tracking-widest uppercase text-zinc-500">Starting From</p>
                 <p className="font-playfair text-2xl md:text-3xl font-bold text-white mt-1">IDR 350.000</p>

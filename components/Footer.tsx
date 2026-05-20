@@ -41,7 +41,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 pb-20 border-b border-zinc-900">
           
           {/* Left Column: Brand, Contact Info, Map, Hours */}
-          <div className="lg:col-span-6 flex flex-col justify-between space-y-10">
+          <div className="lg:col-span-6 flex flex-col justify-between space-y-10" data-aos="fade-right">
             <div>
               {/* Cursive Brand Logo */}
               <a href="#home" className="flex flex-col group relative max-w-max">
@@ -158,7 +158,7 @@ export default function Footer() {
           </div>
 
           {/* Right Column: Custom Message Form */}
-          <div className="lg:col-span-6 border border-zinc-900 p-8 md:p-10 bg-black/60 backdrop-blur-md">
+          <div className="lg:col-span-6 border border-zinc-900 p-8 md:p-10 bg-black/60 backdrop-blur-md" data-aos="fade-left">
             <span className="text-[10px] font-semibold tracking-[0.3em] uppercase text-zinc-500 block mb-2 font-sans">
               Connect With Us
             </span>
@@ -234,7 +234,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom copyright details */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between text-[10px] tracking-widest uppercase text-zinc-600 gap-4">
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-between text-[10px] tracking-widest uppercase text-zinc-600 gap-4" data-aos="fade-up">
           <p>© {new Date().getFullYear()} Cristin Luscious. All Rights Reserved.</p>
           <div className="flex space-x-6">
             <a href="#about" className="hover:text-zinc-300 transition-colors">Privacy Policy</a>

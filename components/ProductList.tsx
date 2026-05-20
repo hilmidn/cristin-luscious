@@ -76,7 +76,7 @@ export default function ProductList() {
       <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10">
         
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-6" data-aos="fade-up">
           <div className="max-w-xl">
             <span className="text-xs font-semibold tracking-[0.4em] uppercase text-zinc-500 block mb-3">
               The Collection
@@ -108,6 +108,8 @@ export default function ProductList() {
                 className={`group relative flex flex-col justify-between border border-zinc-900 bg-black/60 p-6 md:p-8 transition-all duration-500 ease-in-out hover:border-zinc-700 hover:bg-black ${
                   isFeatured ? "md:col-span-1 lg:col-span-1" : ""
                 }`}
+                data-aos="fade-up"
+                data-aos-delay={index * 100}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >

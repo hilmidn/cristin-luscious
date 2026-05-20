@@ -33,7 +33,7 @@ export default function About() {
       <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10">
         
         {/* Editorial Section Header */}
-        <div className="max-w-3xl mb-16 md:mb-24">
+        <div className="max-w-3xl mb-16 md:mb-24" data-aos="fade-up">
           <span className="text-xs font-semibold tracking-[0.4em] uppercase text-zinc-500 block mb-3">
             Our Legacy
           </span>
@@ -47,7 +47,7 @@ export default function About() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
           
           {/* Left Column: Cursive Brand Narrative quote */}
-          <div className="lg:col-span-5 p-8 md:p-12 bg-black border border-zinc-900 relative">
+          <div className="lg:col-span-5 p-8 md:p-12 bg-black border border-zinc-900 relative" data-aos="fade-right">
             <span className="absolute top-4 left-4 font-playfair text-6xl text-zinc-800 leading-none pointer-events-none">
               “
             </span>
@@ -62,7 +62,7 @@ export default function About() {
           </div>
 
           {/* Right Column: Detailed narrative */}
-          <div className="lg:col-span-7 flex flex-col justify-between h-full space-y-6 md:space-y-8">
+          <div className="lg:col-span-7 flex flex-col justify-between h-full space-y-6 md:space-y-8" data-aos="fade-left">
             <h3 className="font-playfair text-xl md:text-2xl text-white font-medium">
               The Genesis of Cristin Luscious
             </h3>
@@ -101,6 +101,8 @@ export default function About() {
             <div
               key={idx}
               className="p-8 bg-black/40 border border-zinc-900 hover:border-zinc-700 transition-all duration-500 ease-in-out group"
+              data-aos="fade-up"
+              data-aos-delay={idx * 100}
             >
               <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-6 group-hover:bg-white group-hover:text-black group-hover:border-white transition-colors duration-500">
                 <div className="group-hover:invert transition-all duration-500">
