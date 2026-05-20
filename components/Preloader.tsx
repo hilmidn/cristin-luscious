@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const FULL_TEXT = "Cristin Luscious";
+const FULL_TEXT = "Cristin's Luscious";
 const TYPING_SPEED = 70;
 const PAUSE_AFTER_TYPING = 500;
 const FADE_DURATION = 500;
@@ -50,19 +50,19 @@ export default function Preloader() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-bg"
       style={{
         transition: `opacity ${FADE_DURATION}ms ease-out`,
         opacity: isFading ? 0 : 1,
       }}
     >
       <h1
-        className="font-playfair text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-wider select-none"
+        className="font-script text-4xl md:text-6xl lg:text-7xl font-bold text-brand-dark tracking-wider select-none"
         aria-label={FULL_TEXT}
       >
         {displayed}
         {showCursor && (
-          <span className="inline-block ml-1 w-0.75 h-[1em] bg-white align-middle animate-pulse" />
+          <span className="inline-block ml-1 w-0.75 h-[1em] bg-brand-dark align-middle animate-pulse" />
         )}
       </h1>
     </div>

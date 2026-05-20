@@ -27,7 +27,7 @@ export default function Hero() {
             </span>
             {/* Main Brand Title */}
             <h1 className="font-playfair text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tight leading-[0.9] text-brand-dark">
-              Cristin <br />
+              {"Cristin's"} <br />
               <span className="text-transparent bg-clip-text bg-linear-to-r from-brand-dark via-brand-text to-brand-muted">
                 Luscious
               </span>
@@ -77,11 +77,11 @@ export default function Hero() {
           <div className="absolute inset-0 border border-brand-border translate-x-4 translate-y-4 -z-10 transition-transform duration-700 hover:translate-x-2 hover:translate-y-2" />
           <div className="relative w-full h-full overflow-hidden border border-brand-border group bg-brand-card">
             <Image
-              src="/hero_cheesecake.png"
+              src="/photos/hero_cheesecake.jpeg"
               alt="Cristin Luscious Signature Cheesecake"
               fill
               priority
-              className="object-cover transition-transform duration-[2.5s] ease-out group-hover:scale-105 filter grayscale contrast-110"
+              className="object-cover transition-transform duration-[2.5s] ease-out group-hover:scale-105 filter contrast-110"
               sizes="(max-w-1024px) 100vw, 40vw"
             />
             {/* Visual overlay gradient */}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Menu, X, Phone } from "lucide-react";
+import Image from "next/image";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -51,12 +52,20 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between">
           {/* Brand Logo - Huruf Latin script aesthetic */}
           <a href="#home" className="flex flex-col group relative">
-            <span className="font-playfair text-xl md:text-2xl font-bold tracking-widest text-brand-dark group-hover:text-brand-text transition-colors uppercase">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={400}
+              height={120}
+              className="h-14 w-auto"
+              loading="eager"
+            />
+            {/* <span className="font-playfair text-xl md:text-2xl font-bold tracking-widest text-brand-dark group-hover:text-brand-text transition-colors uppercase">
               Cristin
             </span>
             <span className="font-script text-2xl md:text-3xl text-brand-text font-light -mt-2.5 ml-4 tracking-wider group-hover:text-brand-dark transition-colors duration-500">
               Luscious
-            </span>
+            </span> */}
           </a>
 
           {/* Desktop Navigation Links */}
@@ -104,7 +113,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="font-playfair text-xl font-bold tracking-widest text-brand-dark uppercase">
-              Cristin
+              {"Cristin's"}
             </span>
             <span className="font-script text-2xl text-brand-text font-light -mt-2.5 ml-4 tracking-wider">
               Luscious
@@ -154,7 +163,7 @@ export default function Navbar() {
           </div>
           <div className="flex space-x-4 pt-2">
             <a
-              href="https://instagram.com"
+              href="https://instagram.com/cristins.luscious"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-center w-8 h-8 border border-brand-border text-brand-text hover:text-brand-dark transition-colors rounded-none bg-brand-card"

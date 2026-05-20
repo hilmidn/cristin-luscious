@@ -24,7 +24,11 @@ export default function ProductList() {
       description:
         "Handcrafted in small batches using premium single-origin Belgian chocolate, organic butter, and sea salt flakes. Perfectly balanced flavors that redefine the classic cookie.",
       image: "/product_cookies.png",
-      features: ["Belgian Dark Chocolate", "Fleur de Sel topping", "Baked Daily"],
+      features: [
+        "Belgian Dark Chocolate",
+        "Fleur de Sel topping",
+        "Baked Daily",
+      ],
     },
     {
       id: "donut",
@@ -41,7 +45,7 @@ export default function ProductList() {
       tagline: "Velvety Elegance",
       description:
         "Our legendary slow-baked masterpiece. An ultra-velvety cream cheese filling resting beautifully upon a crumbly, caramelized house biscuit base.",
-      image: "/product_cheesecake.png",
+      image: "/photos/product_cheesecake.jpeg",
       features: ["Normandy Cream Cheese", "Slow baked 8h", "Caramelized Crust"],
     },
     {
@@ -51,7 +55,11 @@ export default function ProductList() {
       description:
         "Bespoke, multi-tiered cake sculptures designed exclusively for your grand celebrations. We translate your artistic visions into delicious, structurally stunning realities.",
       image: "/product_custom_cake.png",
-      features: ["Bespoke Visual Concept", "Luxury Structural Design", "Premium Flavor Blends"],
+      features: [
+        "Bespoke Visual Concept",
+        "Luxury Structural Design",
+        "Premium Flavor Blends",
+      ],
     },
     {
       id: "brownies",
@@ -60,7 +68,11 @@ export default function ProductList() {
       description:
         "Fudgy, dense, and incredibly rich brownies made from 70% dark cocoa. Dusted lightly with dark Dutch cocoa, offering an intense melt-in-your-mouth chocolate sensation.",
       image: "/product_brownies.png",
-      features: ["70% Single-Origin Cocoa", "Fudgy Chocolate Core", "Premium Cocoa Dusting"],
+      features: [
+        "70% Single-Origin Cocoa",
+        "Fudgy Chocolate Core",
+        "Premium Cocoa Dusting",
+      ],
     },
   ];
 
@@ -74,9 +86,11 @@ export default function ProductList() {
       <div className="absolute right-0 top-0 w-1/4 h-full border-l border-brand-border/40 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10">
-        
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-6" data-aos="fade-up">
+        <div
+          className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-6"
+          data-aos="fade-up"
+        >
           <div className="max-w-xl">
             <span className="text-xs font-semibold tracking-[0.4em] uppercase text-brand-text block mb-3">
               The Collection
@@ -90,7 +104,8 @@ export default function ProductList() {
           </div>
           <div>
             <p className="max-w-sm font-sans text-xs md:text-sm text-brand-text font-light leading-relaxed tracking-wide">
-              An elegant curation of fine patisserie categories, handcrafted daily to deliver unmatched luxury and aesthetic charm.
+              An elegant curation of fine patisserie categories, handcrafted
+              daily to deliver unmatched luxury and aesthetic charm.
             </p>
           </div>
         </div>
@@ -98,10 +113,8 @@ export default function ProductList() {
         {/* Product Grid - Premium Editorial Design */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
           {products.map((product, index) => {
-            const isHovered = hoveredIndex === index;
-            // Make some cards span 2 columns on larger screens to break the monotony
             const isFeatured = index === 0 || index === 3;
-            
+
             return (
               <div
                 key={product.id}
@@ -113,18 +126,17 @@ export default function ProductList() {
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                
                 {/* Image Container with strict monochrome styling */}
                 <div className="relative w-full aspect-square overflow-hidden border border-brand-border mb-6 bg-brand-card">
                   <Image
                     src={product.image}
                     alt={product.name}
                     fill
-                    className="object-cover transition-transform duration-[2s] ease-out group-hover:scale-105 filter grayscale contrast-115"
+                    className="object-cover transition-transform duration-[2s] ease-out group-hover:scale-105 filter contrast-115"
                     sizes="(max-w-768px) 100vw, (max-w-1200px) 50vw, 30vw"
                   />
                   <div className="absolute inset-0 bg-brand-dark/20 opacity-100 group-hover:opacity-10 transition-opacity duration-500" />
-                  
+
                   {/* Premium floating serial label */}
                   <span className="absolute top-4 left-4 text-[9px] tracking-widest font-mono text-brand-text bg-brand-card px-2.5 py-1 border border-brand-border">
                     COL-0{index + 1}
@@ -164,16 +176,17 @@ export default function ProductList() {
                       href="#contact"
                       className="w-8 h-8 rounded-full border border-brand-border group-hover:border-brand-text flex items-center justify-center transition-colors duration-500"
                     >
-                      <ArrowUpRight size={14} className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+                      <ArrowUpRight
+                        size={14}
+                        className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300"
+                      />
                     </a>
                   </div>
                 </div>
-
               </div>
             );
           })}
         </div>
-
       </div>
     </section>
   );
