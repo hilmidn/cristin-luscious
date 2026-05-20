@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import Image from "next/image";
 import { ArrowRight, ChevronDown } from "lucide-react";
 
@@ -29,7 +28,7 @@ export default function Hero() {
             {/* Main Brand Title */}
             <h1 className="font-playfair text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tight leading-[0.9] text-white">
               Cristin <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-400 to-zinc-600">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-white via-zinc-400 to-zinc-600">
                 Luscious
               </span>
             </h1>
@@ -37,7 +36,7 @@ export default function Hero() {
 
           {/* Tagline */}
           <div className="flex items-center space-x-4">
-            <span className="h-[1px] w-12 bg-zinc-500 hidden sm:block" />
+            <span className="h-px w-12 bg-zinc-500 hidden sm:block" />
             <p className="font-sans text-xs sm:text-sm tracking-[0.3em] uppercase text-zinc-300 font-semibold">
               Luscious Cookies & Dessert
             </p>
@@ -73,7 +72,7 @@ export default function Hero() {
         </div>
 
         {/* Right Side: Hero Image Presentation */}
-        <div className="lg:col-span-5 relative w-full aspect-[4/5] md:aspect-square lg:aspect-[4/5] animate-[fade-in-up_1.5s_ease-out_forwards]">
+        <div className="lg:col-span-5 relative w-full aspect-4/5 md:aspect-square lg:aspect-4/5 animate-[fade-in-up_1.5s_ease-out_forwards]">
           {/* Luxury Frame Container */}
           <div className="absolute inset-0 border border-zinc-900 translate-x-4 translate-y-4 -z-10 transition-transform duration-700 hover:translate-x-2 hover:translate-y-2" />
           <div className="relative w-full h-full overflow-hidden border border-zinc-800 group bg-zinc-950">
@@ -86,7 +85,7 @@ export default function Hero() {
               sizes="(max-w-1024px) 100vw, 40vw"
             />
             {/* Visual overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
 
             {/* Elegant Floating Tag on Image */}
             <div className="absolute bottom-6 left-6 right-6 p-6 bg-black/60 backdrop-blur-md border border-zinc-900 flex justify-between items-center">

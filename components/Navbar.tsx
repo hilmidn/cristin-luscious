@@ -68,7 +68,7 @@ export default function Navbar() {
                 className="text-xs tracking-widest uppercase text-zinc-400 hover:text-white transition-all duration-300 relative group py-2"
               >
                 {link.name}
-                <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-white transition-all duration-300 group-hover:w-full" />
+                <span className="absolute bottom-0 left-0 w-0 h-px bg-white transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
             <a

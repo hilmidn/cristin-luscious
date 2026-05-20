@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 const FULL_TEXT = "Cristin Luscious";
-const TYPING_SPEED = 120;
-const PAUSE_AFTER_TYPING = 1000;
-const FADE_DURATION = 700;
+const TYPING_SPEED = 70;
+const PAUSE_AFTER_TYPING = 500;
+const FADE_DURATION = 500;
 
 export default function Preloader() {
   const [displayed, setDisplayed] = useState("");
@@ -62,7 +62,7 @@ export default function Preloader() {
       >
         {displayed}
         {showCursor && (
-          <span className="inline-block ml-1 w-[3px] h-[1em] bg-white align-middle animate-pulse" />
+          <span className="inline-block ml-1 w-0.75 h-[1em] bg-white align-middle animate-pulse" />
         )}
       </h1>
     </div>
