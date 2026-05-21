@@ -2,79 +2,12 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-
-interface ProductItem {
-  id: string;
-  name: string;
-  tagline: string;
-  description: string;
-  image: string;
-  features: string[];
-}
+import { products } from "@/lib/products";
 
 export default function ProductList() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  const products: ProductItem[] = [
-    {
-      id: "cookies",
-      name: "Handcrafted Cookies",
-      tagline: "Crisp Edges, Chewy Core",
-      description:
-        "Handcrafted in small batches using premium single-origin Belgian chocolate, organic butter, and sea salt flakes. Perfectly balanced flavors that redefine the classic cookie.",
-      image: "/product_cookies.png",
-      features: [
-        "Belgian Dark Chocolate",
-        "Fleur de Sel topping",
-        "Baked Daily",
-      ],
-    },
-    {
-      id: "donut",
-      name: "Gourmet Donuts",
-      tagline: "Fluffy & Silky Glazes",
-      description:
-        "Brioche-style gourmet donuts that undergo a slow 24-hour fermentation. Topped with artisan handcrafted glazes, custom ganaches, and elegant, minimalist garnishes.",
-      image: "/product_donut.png",
-      features: ["Slow Fermented Brioche", "Artisan Ganache", "Light & Fluffy"],
-    },
-    {
-      id: "cheesecake",
-      name: "Signature Cheesecake",
-      tagline: "Velvety Elegance",
-      description:
-        "Our legendary slow-baked masterpiece. An ultra-velvety cream cheese filling resting beautifully upon a crumbly, caramelized house biscuit base.",
-      image: "/photos/product_cheesecake.jpeg",
-      features: ["Normandy Cream Cheese", "Slow baked 8h", "Caramelized Crust"],
-    },
-    {
-      id: "custom-cake",
-      name: "Custom Designs",
-      tagline: "Tailored Luxury Sculptures",
-      description:
-        "Bespoke, multi-tiered cake sculptures designed exclusively for your grand celebrations. We translate your artistic visions into delicious, structurally stunning realities.",
-      image: "/product_custom_cake.png",
-      features: [
-        "Bespoke Visual Concept",
-        "Luxury Structural Design",
-        "Premium Flavor Blends",
-      ],
-    },
-    {
-      id: "brownies",
-      name: "Decadent Brownies",
-      tagline: "Intense Cocoa Sensation",
-      description:
-        "Fudgy, dense, and incredibly rich brownies made from 70% dark cocoa. Dusted lightly with dark Dutch cocoa, offering an intense melt-in-your-mouth chocolate sensation.",
-      image: "/product_brownies.png",
-      features: [
-        "70% Single-Origin Cocoa",
-        "Fudgy Chocolate Core",
-        "Premium Cocoa Dusting",
-      ],
-    },
-  ];
 
   return (
     <section
@@ -171,16 +104,16 @@ export default function ProductList() {
 
                   {/* Action Link */}
                   <div className="pt-4 flex justify-between items-center text-xs tracking-widest uppercase font-semibold text-brand-dark group-hover:text-brand-muted transition-colors">
-                    <span>Order Category</span>
-                    <a
-                      href="#contact"
+                    <span>Lihat Detail</span>
+                    <Link
+                      href={`/products/${product.slug}`}
                       className="w-8 h-8 rounded-full border border-brand-border group-hover:border-brand-text flex items-center justify-center transition-colors duration-500"
                     >
                       <ArrowUpRight
                         size={14}
                         className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300"
                       />
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </div>

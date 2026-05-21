@@ -95,7 +95,7 @@ export default function Home() {
           __html: JSON.stringify(structuredData),
         }}
       />
-      <div className="relative min-h-screen bg-black text-white selection:bg-white selection:text-black">
+      <div className="relative min-h-screen bg-brand-bg text-brand-dark selection:bg-brand-dark selection:text-brand-bg">
         {/* Floating elegant header */}
         <Navbar />
 
