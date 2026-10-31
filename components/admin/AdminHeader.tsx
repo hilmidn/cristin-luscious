@@ -13,9 +13,14 @@ type AdminHeaderProps = {
   onMenuClick: () => void;
 };
 
-const pageLabels: Record<string, string> = {
-  "/admin": "Dashboard",
-};
+function getPageLabel(pathname: string) {
+  if (pathname === "/admin") return "Dashboard";
+  if (pathname === "/admin/products") return "Produk";
+  if (pathname === "/admin/products/new") return "Produk Baru";
+  if (pathname.startsWith("/admin/products/")) return "Edit Produk";
+
+  return "Dashboard";
+}
 
 export default function AdminHeader({
   user,
@@ -23,7 +28,7 @@ export default function AdminHeader({
   onMenuClick,
 }: AdminHeaderProps) {
   const pathname = usePathname();
-  const pageLabel = pageLabels[pathname] ?? "Dashboard";
+  const pageLabel = getPageLabel(pathname);
   const initial = user.name.trim().charAt(0).toUpperCase() || "A";
 
   return (

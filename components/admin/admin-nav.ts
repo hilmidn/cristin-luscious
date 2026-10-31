@@ -36,7 +36,6 @@ export const adminNav: AdminNavGroup[] = [
         label: "Produk",
         href: "/admin/products",
         icon: Croissant,
-        soon: true,
       },
       {
         label: "Pesanan",

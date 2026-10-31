@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { products } from "@/lib/products";
+import type { CatalogProduct } from "@/lib/catalog-types";
 
-export default function ProductList() {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+type ProductListProps = {
+  products: CatalogProduct[];
+};
 
+export default function ProductList({ products }: ProductListProps) {
   return (
     <section
       id="products"
@@ -44,21 +46,30 @@ export default function ProductList() {
         </div>
 
         {/* Product Grid - Premium Editorial Design */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
-          {products.map((product, index) => {
-            const isFeatured = index === 0 || index === 3;
+        {products.length === 0 ? (
+          <div className="border border-dashed border-brand-border bg-brand-card px-6 py-16 text-center">
+            <p className="font-playfair text-xl font-bold text-brand-dark">
+              Koleksi sedang disiapkan
+            </p>
+            <p className="mx-auto mt-2 max-w-md font-sans text-xs font-light leading-relaxed text-brand-text">
+              Produk baru akan segera tampil di sini. Silakan kembali lagi atau
+              hubungi kami untuk pemesanan.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+            {products.map((product, index) => {
+              const isFeatured = index === 0 || index === 3;
 
-            return (
-              <div
-                key={product.id}
-                className={`group relative flex flex-col justify-between border border-brand-border bg-brand-card p-6 md:p-8 transition-all duration-500 ease-in-out hover:border-brand-text ${
-                  isFeatured ? "md:col-span-1 lg:col-span-1" : ""
-                }`}
-                data-aos="fade-up"
-                data-aos-delay={index * 100}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-              >
+              return (
+                <div
+                  key={product.id}
+                  className={`group relative flex flex-col justify-between border border-brand-border bg-brand-card p-6 md:p-8 transition-all duration-500 ease-in-out hover:border-brand-text ${
+                    isFeatured ? "md:col-span-1 lg:col-span-1" : ""
+                  }`}
+                  data-aos="fade-up"
+                  data-aos-delay={index * 100}
+                >
                 {/* Image Container with strict monochrome styling */}
                 <div className="relative w-full aspect-square overflow-hidden border border-brand-border mb-6 bg-brand-card">
                   <Image
@@ -118,8 +129,9 @@ export default function ProductList() {
                 </div>
               </div>
             );
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

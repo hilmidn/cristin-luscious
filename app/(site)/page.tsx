@@ -4,7 +4,10 @@ import About from "@/components/About";
 import FeaturedCheesecake from "@/components/FeaturedCheesecake";
 import ProductList from "@/components/ProductList";
 import Footer from "@/components/Footer";
+import { getPublishedProducts } from "@/lib/catalog";
 import { Metadata } from "next";
+
+export const revalidate = 60;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
 
@@ -59,7 +62,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function Home() {
+export default async function Home() {
+  const products = await getPublishedProducts();
   const canonicalUrl = getAbsoluteUrl("/");
   const structuredData = {
     "@context": "https://schema.org",
@@ -110,7 +114,7 @@ export default function Home() {
           <FeaturedCheesecake />
 
           {/* Elegant collection list (Cookies, Donut, Cheesecake, Custom Cake, Brownies) */}
-          <ProductList />
+          <ProductList products={products} />
         </main>
 
         {/* Structured contact form & business coordinates */}

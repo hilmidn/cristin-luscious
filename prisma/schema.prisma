@@ -18,3 +18,44 @@ model AdminUser {
 
   @@map("admin_users")
 }
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  tagline     String
+  description String
+  image       String
+  features    String[] @default([])
+  customNote  String?
+  published   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  variants ProductVariant[]
+
+  @@index([published, sortOrder])
+  @@map("products")
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  slug        String
+  name        String
+  description String
+  price       Int?
+  priceUnit   String?
+  image       String
+  tags        String[] @default([])
+  published   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, slug])
+  @@index([productId, published, sortOrder])
+  @@map("product_variants")
+}

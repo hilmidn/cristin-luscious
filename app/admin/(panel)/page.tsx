@@ -7,55 +7,41 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
-import { products } from "@/lib/products";
 import PageHeading from "@/components/admin/PageHeading";
 import ProductOverviewTable from "@/components/admin/ProductOverviewTable";
 import StatCard from "@/components/admin/StatCard";
+import { getCatalogStats } from "@/lib/catalog";
 
-export default function AdminDashboardPage() {
-  const totalVariants = products.reduce(
-    (total, product) => total + (product.variants?.length ?? 0),
-    0,
-  );
+export const dynamic = "force-dynamic";
 
-  const bestSellers = products.reduce(
-    (total, product) =>
-      total +
-      (product.variants?.filter((variant) =>
-        variant.tags.includes("Best Seller"),
-      ).length ?? 0),
-    0,
-  );
-
-  const customProducts = products.filter(
-    (product) => !product.hasVariants,
-  ).length;
+export default async function AdminDashboardPage() {
+  const statsData = await getCatalogStats();
 
   const stats = [
     {
-      label: "Kategori Produk",
-      value: products.length,
-      hint: "Koleksi aktif",
+      label: "Koleksi Produk",
+      value: statsData.productCount,
+      hint: `${statsData.publishedProductCount} aktif di website`,
       icon: Layers,
       index: "01",
     },
     {
       label: "Total Varian",
-      value: totalVariants,
+      value: statsData.variantCount,
       hint: "Rasa & ukuran",
       icon: Croissant,
       index: "02",
     },
     {
       label: "Best Seller",
-      value: bestSellers,
+      value: statsData.bestSellerCount,
       hint: "Ditandai pada varian",
       icon: TrendingUp,
       index: "03",
     },
     {
       label: "Custom Order",
-      value: customProducts,
+      value: statsData.customCount,
       hint: "Tanpa varian tetap",
       icon: CakeSlice,
       index: "04",
@@ -68,10 +54,10 @@ export default function AdminDashboardPage() {
         eyebrow="Admin Atelier"
         title="Dashboard"
         accent="overview"
-        description="Ringkasan katalog Cristin Luscious. Data produk masih dibaca dari file statis sampai modul pengelolaan produk dibuka."
+        description="Ringkasan katalog Cristin Luscious. Semua perubahan produk dan varian langsung tersimpan ke database dan tampil di website."
         actions={
           <div className="border border-brand-border bg-brand-card px-3 py-2 font-sans text-[8px] font-bold uppercase tracking-[0.2em] text-brand-text">
-            Tahap 1 — Read-only
+            Katalog aktif
           </div>
         }
       />
@@ -95,25 +81,34 @@ export default function AdminDashboardPage() {
           />
           <div>
             <p className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-brand-dark">
-              Fondasi admin sudah aktif
+              Modul produk sudah aktif
             </p>
             <p className="mt-2 max-w-xl font-sans text-[11px] font-light leading-relaxed text-brand-text">
-              Login, shell admin, dan ringkasan katalog sudah berjalan. Modul
-              Produk, Pesanan, dan Pengaturan akan dibuka setelah tahap ini
-              stabil.
+              Tambah koleksi, atur varian, unggah gambar, dan atur urutan tampil
+              dari satu tempat. Modul Pesanan dan Pengaturan menyusul.
             </p>
           </div>
         </div>
 
-        <Link
-          href="/"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex w-fit shrink-0 items-center gap-2 border border-brand-dark bg-brand-dark px-5 py-3 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors duration-300 hover:bg-transparent hover:text-brand-dark"
-        >
-          Lihat Website
-          <ArrowUpRight size={13} />
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/products"
+            className="inline-flex w-fit shrink-0 items-center gap-2 border border-brand-dark bg-brand-dark px-5 py-3 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors duration-300 hover:bg-transparent hover:text-brand-dark"
+          >
+            Kelola Produk
+            <ArrowUpRight size={13} />
+          </Link>
+
+          <Link
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex w-fit shrink-0 items-center gap-2 border border-brand-border bg-brand-card px-5 py-3 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-text transition-colors duration-300 hover:border-brand-dark hover:text-brand-dark"
+          >
+            Lihat Website
+            <ArrowUpRight size={13} />
+          </Link>
+        </div>
       </div>
     </>
   );

@@ -4,14 +4,15 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ShoppingBag, Check, ChevronDown } from "lucide-react";
-import type { Product, ProductVariant } from "@/lib/products";
+import type { CatalogProduct, CatalogVariant } from "@/lib/catalog-types";
 
 interface Props {
-  product: Product;
+  product: CatalogProduct;
+  relatedProducts: CatalogProduct[];
 }
 
-export default function ProductDetailClient({ product }: Props) {
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+export default function ProductDetailClient({ product, relatedProducts }: Props) {
+  const [selectedVariant, setSelectedVariant] = useState<CatalogVariant | null>(
     product.variants?.[0] ?? null
   );
   const [expandedVariant, setExpandedVariant] = useState<string | null>(
@@ -19,7 +20,6 @@ export default function ProductDetailClient({ product }: Props) {
   );
 
   const activeImage = selectedVariant?.image ?? product.image;
-  const activeDescription = selectedVariant?.description ?? product.description;
   const activePrice = selectedVariant?.price ?? null;
 
   return (
@@ -98,7 +98,7 @@ export default function ProductDetailClient({ product }: Props) {
             {/* Product header */}
             <div>
               <span className="text-[10px] tracking-[0.4em] uppercase text-brand-text font-semibold font-sans block mb-3">
-                Cristin&apos;s Luscious — {product.id.replace("-", " ")}
+                Cristin&apos;s Luscious — {product.slug.replace(/-/g, " ")}
               </span>
               <h1 className="font-playfair text-4xl md:text-5xl font-bold uppercase tracking-tight text-brand-dark leading-tight">
                 {product.name}
@@ -248,7 +248,7 @@ export default function ProductDetailClient({ product }: Props) {
       </section>
 
       {/* ── Related Products ── */}
-      <RelatedProducts currentSlug={product.slug} />
+      <RelatedProducts currentSlug={product.slug} products={relatedProducts} />
     </main>
   );
 }
@@ -256,10 +256,14 @@ export default function ProductDetailClient({ product }: Props) {
 // ─────────────────────────────────────────
 // Related Products strip at bottom
 // ─────────────────────────────────────────
-import { products as allProducts } from "@/lib/products";
-
-function RelatedProducts({ currentSlug }: { currentSlug: string }) {
-  const related = allProducts.filter((p) => p.slug !== currentSlug).slice(0, 4);
+function RelatedProducts({
+  currentSlug,
+  products,
+}: {
+  currentSlug: string;
+  products: CatalogProduct[];
+}) {
+  const related = products.filter((p) => p.slug !== currentSlug).slice(0, 4);
   return (
     <section className="max-w-7xl mx-auto px-6 lg:px-12 mt-24 pt-16 border-t border-brand-border">
       <div className="flex items-end justify-between mb-10 gap-4">
