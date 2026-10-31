@@ -1,0 +1,72 @@
+// Draft tambahan untuk prisma/schema.prisma — modul Pesanan.
+// Belum diterapkan; dipakai sebagai acuan implementasi.
+
+enum ServiceType {
+  PICKUP
+  ANTAR
+}
+
+enum OrderStatus {
+  BARU
+  DIPROSES
+  SELESAI
+  DIBATALKAN
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  code           String      @unique
+  customerName   String
+  phone          String
+  address        String
+  serviceType    ServiceType @default(PICKUP)
+  // Wajib diisi saat serviceType = ANTAR (divalidasi di actions.ts).
+  deliveryPoint  String?
+  deliveryMapUrl String?
+  // Bebas, tanpa tabel master: daftar pilihan dibangun dari data lama.
+  source         String?
+  note           String?
+  shippingCost   Int         @default(0)
+  subtotal       Int         @default(0)
+  total          Int         @default(0)
+  status         OrderStatus @default(BARU)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@index([status, createdAt])
+  @@index([source])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Relasi opsional: varian/produk boleh dihapus tanpa menghapus riwayat pesanan.
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  productId   String?
+  product     Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // Snapshot saat pesanan dibuat (nama & harga bisa berubah di katalog).
+  productName String
+  variantName String
+  unitPrice   Int?
+  priceUnit   String?
+  quantity    Int
+  lineTotal   Int      @default(0)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([orderId, sortOrder])
+  @@index([variantId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// Tambahan pada model yang sudah ada:
+// model Product { ... orderItems OrderItem[] }
+// model ProductVariant { ... orderItems OrderItem[] }
