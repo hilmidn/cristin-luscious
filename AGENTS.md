@@ -45,7 +45,8 @@ Website Cristin Luscious (cookies & dessert premium) + area admin privat di `/ad
 - Daftar pesanan dipisah dua halaman: `/admin/orders` hanya status aktif (`BARU`, `DIPROSES`), sedangkan `/admin/orders/recap` menampung `SELESAI` dan `DIBATALKAN`. Filter status per halaman dibatasi ke status yang relevan lewat `getAdminOrders({ statuses })`.
 - Tabel dan filter dipakai bersama oleh kedua halaman: `components/admin/orders/OrderTable.tsx` + `OrderFilters.tsx`. Detail dibuka sebagai popup (`OrderDetailDialog.tsx`, data lengkap sudah ikut di query list); edit tetap halaman `/admin/orders/[id]`.
 - Helper murni (label, `formatRupiah`, `calculateOrderTotals`, `normalizePhone`) ada di `lib/order-types.ts`; query server-only di `lib/orders.ts`. Form ada di `components/admin/orders/OrderForm.tsx`.
-- **Zona waktu: selalu WIB (`Asia/Jakarta`)**, bukan zona server. Format tampilan, prefix kode invoice harian, batas "hari ini", dan awal bulan statistik memakai `jakartaDateKey()` / `jakartaStartOfDay()` / `jakartaStartOfMonth()` dari `lib/order-types.ts`.
+- **Zona waktu: selalu WIB (`Asia/Jakarta`)**, bukan zona server. Format tampilan, prefix kode invoice harian, batas "hari ini", dan rentang bulan statistik memakai `jakartaDateKey()` / `jakartaStartOfDay()` / `jakartaStartOfMonth()` / `jakartaMonthRange()` dari `lib/order-types.ts`.
+- Statistik uang di `/admin/orders/recap`: `monthRevenue` hanya order `SELESAI`, `monthCancelled` hanya `DIBATALKAN`, keduanya memakai **tanggal ambil/kirim (`scheduledAt`)** dengan fallback `createdAt` bila jadwal kosong. Jangan hitung pendapatan dari `createdAt` saja.
 - `Order.scheduledAt` adalah tanggal ambil/kirim (`DATE`, tanpa jam) dan wajib diisi di form; nullable di DB hanya untuk kompatibilitas data lama.
 - Setiap `OrderItem` otomatis mendapat satu `ProductionTask` (lihat bagian Konvensi produksi) di transaksi yang sama.
 

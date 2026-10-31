@@ -221,6 +221,23 @@ export function jakartaStartOfMonth(value: Date): Date {
   return new Date(`${jakartaDateKey(value).slice(0, 7)}-01T00:00:00+07:00`);
 }
 
+/**
+ * Rentang satu bulan WIB: `start` inklusif, `end` eksklusif (awal bulan
+ * berikutnya) supaya query bisa memakai `gte`/`lt` tanpa menghitung hari.
+ */
+export function jakartaMonthRange(value: Date): { start: Date; end: Date } {
+  const [year, month] = jakartaDateKey(value).split("-").map(Number);
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+
+  return {
+    start: new Date(`${year}-${String(month).padStart(2, "0")}-01T00:00:00+07:00`),
+    end: new Date(
+      `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+07:00`,
+    ),
+  };
+}
+
 /** Nilai untuk <input type="date"> berdasarkan tanggal WIB. */
 export function toDateInputValue(value: Date | null | undefined): string {
   return value ? jakartaDateKey(value) : "";

@@ -59,7 +59,7 @@ export default async function OrderRecapPage({ searchParams }: Props) {
         }
       />
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border border-brand-border bg-brand-card px-4 py-3">
           <p className="font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
             Selesai
@@ -78,10 +78,24 @@ export default async function OrderRecapPage({ searchParams }: Props) {
         </div>
         <div className="border border-brand-border bg-brand-card px-4 py-3">
           <p className="font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
-            Nilai Bulan Ini
+            Pendapatan Bulan Ini
           </p>
           <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
             {formatRupiah(stats.monthRevenue)}
+          </p>
+          <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-brand-muted">
+            Selesai · tgl ambil/kirim
+          </p>
+        </div>
+        <div className="border border-brand-border bg-brand-card px-4 py-3">
+          <p className="font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
+            Nilai Dibatalkan
+          </p>
+          <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
+            {formatRupiah(stats.monthCancelled)}
+          </p>
+          <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-brand-muted">
+            Batal · tgl ambil/kirim
           </p>
         </div>
       </div>

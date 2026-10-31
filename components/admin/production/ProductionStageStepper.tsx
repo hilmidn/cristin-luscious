@@ -23,6 +23,7 @@ export default function ProductionStageStepper({
 }: ProductionStageStepperProps) {
   const [isPending, startTransition] = useTransition();
   const current = stageIndex(stage);
+  const next = nextStage(stage);
 
   function move(direction: "next" | "prev") {
     startTransition(async () => {
@@ -35,58 +36,79 @@ export default function ProductionStageStepper({
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => move("prev")}
-        disabled={isPending || !previousStage(stage)}
-        aria-label="Kembali ke tahap sebelumnya"
-        className="flex h-7 w-7 shrink-0 items-center justify-center border border-brand-border bg-brand-bg text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
-      >
-        <ChevronLeft size={13} />
-      </button>
-
-      <div className="flex min-w-0 flex-1 items-start gap-1">
-        {PRODUCTION_STAGES.map((item, index) => {
-          const reached = index <= current;
-          const active = index === current;
-
-          return (
-            <div key={item} className="min-w-0 flex-1">
-              <div
-                className={`h-[3px] w-full ${
-                  reached ? "bg-brand-dark" : "bg-brand-border"
-                }`}
-              />
-              <span
-                className={`mt-1 block truncate font-sans text-[7px] uppercase tracking-[0.12em] ${
-                  active
-                    ? "font-bold text-brand-dark"
-                    : reached
-                      ? "text-brand-text"
-                      : "text-brand-muted"
-                }`}
-              >
-                {PRODUCTION_STAGE_LABELS[item]}
-              </span>
-            </div>
-          );
-        })}
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-brand-text">
+          Tahap {current + 1}/{PRODUCTION_STAGES.length}
+        </span>
+        <span className="truncate font-sans text-[8px] font-bold uppercase tracking-[0.12em] text-brand-text">
+          {next
+            ? `Berikutnya: ${PRODUCTION_STAGE_LABELS[next]}`
+            : "Tahap akhir"}
+        </span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => move("next")}
-        disabled={isPending || !nextStage(stage)}
-        aria-label="Lanjut ke tahap berikutnya"
-        className="flex h-7 w-7 shrink-0 items-center justify-center border border-brand-dark bg-brand-dark text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
-      >
-        {isPending ? (
-          <Loader2 size={13} className="animate-spin" />
-        ) : (
-          <ChevronRight size={13} />
-        )}
-      </button>
+      <div className="flex items-stretch gap-2">
+        <button
+          type="button"
+          onClick={() => move("prev")}
+          disabled={isPending || !previousStage(stage)}
+          aria-label="Kembali ke tahap sebelumnya"
+          className="flex w-8 shrink-0 items-center justify-center border border-brand-border bg-brand-bg text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <ChevronLeft size={14} />
+        </button>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          {/* Nama tahap aktif: bar gelap selebar kartu, tidak pernah terpotong. */}
+          <div
+            className={`flex h-8 items-center justify-center px-2 ${
+              isPending ? "bg-brand-text" : "bg-brand-dark"
+            }`}
+          >
+            <span className="whitespace-nowrap font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-brand-bg">
+              {PRODUCTION_STAGE_LABELS[stage]}
+            </span>
+          </div>
+
+          <div
+            className="flex gap-1"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={PRODUCTION_STAGES.length}
+            aria-valuenow={current + 1}
+            aria-valuetext={PRODUCTION_STAGE_LABELS[stage]}
+          >
+            {PRODUCTION_STAGES.map((item, index) => (
+              <span
+                key={item}
+                title={PRODUCTION_STAGE_LABELS[item]}
+                className={`h-[3px] flex-1 ${
+                  index < current
+                    ? "bg-brand-dark"
+                    : index === current
+                      ? "bg-brand-text"
+                      : "bg-brand-border"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => move("next")}
+          disabled={isPending || !next}
+          aria-label="Lanjut ke tahap berikutnya"
+          className="flex w-8 shrink-0 items-center justify-center border border-brand-dark bg-brand-dark text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          {isPending ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <ChevronRight size={14} />
+          )}
+        </button>
+      </div>
     </div>
   );
 }

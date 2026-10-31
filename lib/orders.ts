@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getPrisma } from "./prisma";
-import { jakartaStartOfMonth } from "./order-types";
+import { jakartaMonthRange } from "./order-types";
 import type {
   AdminOrder,
   OrderSourceOption,
@@ -164,21 +164,36 @@ export async function getOrderSources(): Promise<OrderSourceOption[]> {
 export async function getOrderStats() {
   const prisma = getPrisma();
   const now = new Date();
-  const startOfMonth = jakartaStartOfMonth(now);
+  const { start: startOfMonth, end: startOfNextMonth } = jakartaMonthRange(now);
 
-  const [total, baru, diproses, selesai, dibatalkan, revenue] =
+  /**
+   * Bulan statistik memakai tanggal ambil/kirim (`scheduledAt`) karena pesanan
+   * ini pre-order: pendapatan diakui saat barang diserahkan, bukan saat
+   * dicatat. Data lama tanpa jadwal jatuh ke `createdAt`.
+   */
+  const thisMonth = {
+    OR: [
+      { scheduledAt: { gte: startOfMonth, lt: startOfNextMonth } },
+      { scheduledAt: null, createdAt: { gte: startOfMonth, lt: startOfNextMonth } },
+    ],
+  };
+
+  const [total, baru, diproses, selesai, dibatalkan, revenue, cancelled] =
     await Promise.all([
       prisma.order.count(),
       prisma.order.count({ where: { status: "BARU" } }),
       prisma.order.count({ where: { status: "DIPROSES" } }),
       prisma.order.count({ where: { status: "SELESAI" } }),
       prisma.order.count({ where: { status: "DIBATALKAN" } }),
+      // Pendapatan hanya dari pesanan yang benar-benar selesai.
       prisma.order.aggregate({
         _sum: { total: true },
-        where: {
-          status: { not: "DIBATALKAN" },
-          createdAt: { gte: startOfMonth },
-        },
+        where: { status: "SELESAI", ...thisMonth },
+      }),
+      // Nilai pesanan batal dipisah supaya tidak tercampur ke pendapatan.
+      prisma.order.aggregate({
+        _sum: { total: true },
+        where: { status: "DIBATALKAN", ...thisMonth },
       }),
     ]);
 
@@ -189,6 +204,7 @@ export async function getOrderStats() {
     selesai,
     dibatalkan,
     monthRevenue: revenue._sum.total ?? 0,
+    monthCancelled: cancelled._sum.total ?? 0,
   };
 }
 
