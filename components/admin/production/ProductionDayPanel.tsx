@@ -92,19 +92,19 @@ export default function ProductionDayPanel({ day }: ProductionDayPanelProps) {
                 {order.items.map((item) => (
                   <li
                     key={item.taskId}
-                    className="grid grid-cols-1 gap-2 border border-brand-border/70 bg-brand-card/40 px-3 py-2 sm:grid-cols-[1fr_260px] sm:items-center"
+                    className="flex flex-col gap-2 border border-brand-border/70 bg-brand-card/40 px-3 py-2.5"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-sans text-[11px] font-semibold text-brand-dark">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                      <p className="font-sans text-[11px] font-semibold leading-snug text-brand-dark">
                         {item.productName}
                         <span className="font-normal text-brand-text">
-                          {" "}
-                          — {item.variantName}
+                          {" — "}
+                          {item.variantName}
                         </span>
                       </p>
-                      <p className="mt-0.5 font-mono text-[9px] text-brand-text">
+                      <span className="shrink-0 font-mono text-[10px] font-bold text-brand-dark">
                         ×{item.quantity}
-                      </p>
+                      </span>
                     </div>
 
                     <ProductionStageStepper

@@ -221,6 +221,58 @@ export function jakartaStartOfMonth(value: Date): Date {
   return new Date(`${jakartaDateKey(value).slice(0, 7)}-01T00:00:00+07:00`);
 }
 
+/** Bulan WIB (`YYYY-MM`) dari sebuah instant. */
+export function jakartaMonthKey(value: Date): string {
+  return jakartaDateKey(value).slice(0, 7);
+}
+
+export function isMonthKeyValue(value: string | undefined): value is string {
+  return Boolean(value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value));
+}
+
+/** Geser bulan, mis. ("2026-01", -1) -> "2025-12". */
+export function shiftMonthKeyValue(monthKey: string, delta: number): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1 + delta, 1));
+
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** "2026-11" -> "November 2026". */
+export function monthKeyLabel(monthKey: string, format: "long" | "short" = "long"): string {
+  const [year, month] = monthKey.split("-").map(Number);
+
+  return new Intl.DateTimeFormat("id-ID", {
+    month: format,
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
+/**
+ * Rentang satu bulan WIB: `start` inklusif, `end` eksklusif (awal bulan
+ * berikutnya) supaya query bisa memakai `gte`/`lt` tanpa menghitung hari.
+ */
+export function monthRangeFromKey(monthKey: string): {
+  start: Date;
+  end: Date;
+} {
+  const [year, month] = monthKey.split("-").map(Number);
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+
+  return {
+    start: new Date(`${year}-${String(month).padStart(2, "0")}-01T00:00:00+07:00`),
+    end: new Date(
+      `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+07:00`,
+    ),
+  };
+}
+
+export function jakartaMonthRange(value: Date): { start: Date; end: Date } {
+  return monthRangeFromKey(jakartaMonthKey(value));
+}
+
 /** Nilai untuk <input type="date"> berdasarkan tanggal WIB. */
 export function toDateInputValue(value: Date | null | undefined): string {
   return value ? jakartaDateKey(value) : "";
