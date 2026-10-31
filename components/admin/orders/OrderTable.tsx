@@ -154,10 +154,7 @@ export default function OrderTable({
                     </td>
 
                     <td className="px-5 py-4 align-middle sm:px-6">
-                      <OrderStatusControl
-                        id={order.id}
-                        status={order.status}
-                      />
+                      <OrderStatusControl id={order.id} status={order.status} />
                     </td>
 
                     <td className="px-5 py-4 align-middle text-right sm:px-6">
@@ -179,10 +176,6 @@ export default function OrderTable({
           </div>
         )}
       </section>
-
-      <p className="mt-4 font-sans text-[9px] uppercase tracking-[0.18em] text-brand-muted">
-        Total dihitung server dari harga varian saat pesanan disimpan.
-      </p>
     </>
   );
 }
