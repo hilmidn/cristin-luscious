@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import type { CatalogProduct } from "@/lib/catalog-types";
+import { productImageSrc, type CatalogProduct } from "@/lib/catalog-types";
 
 type ProductListProps = {
   products: CatalogProduct[];
@@ -73,7 +73,7 @@ export default function ProductList({ products }: ProductListProps) {
                 {/* Image Container with strict monochrome styling */}
                 <div className="relative w-full aspect-square overflow-hidden border border-brand-border mb-6 bg-brand-card">
                   <Image
-                    src={product.image}
+                    src={productImageSrc(product.image)}
                     alt={product.name}
                     fill
                     className="object-cover transition-transform duration-[2s] ease-out group-hover:scale-105 filter contrast-115"

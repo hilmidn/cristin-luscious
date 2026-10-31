@@ -64,13 +64,9 @@ function validateInput(input: ProductInput) {
   if (!input.name?.trim()) throw new Error("Nama produk wajib diisi.");
   if (!input.tagline?.trim()) throw new Error("Tagline wajib diisi.");
   if (!input.description?.trim()) throw new Error("Deskripsi wajib diisi.");
-  if (!input.image?.trim()) throw new Error("Gambar produk wajib diisi.");
 
-  if (!isAllowedImagePath(input.image)) {
-    throw new Error(
-      "Gambar produk harus diunggah lewat UploadThing atau memakai path lokal.",
-    );
-  }
+  // Gambar boleh kosong: halaman tampilan akan memakai placeholder.
+  validateImagePath(input.image, "Gambar produk");
 
   for (const variant of input.variants) {
     if (!variant.name?.trim()) {
@@ -79,14 +75,22 @@ function validateInput(input: ProductInput) {
     if (!variant.description?.trim()) {
       throw new Error(`Deskripsi varian "${variant.name}" wajib diisi.`);
     }
-    if (!variant.image?.trim()) {
-      throw new Error(`Gambar varian "${variant.name}" wajib diisi.`);
-    }
-    if (!isAllowedImagePath(variant.image)) {
-      throw new Error(
-        `Gambar varian "${variant.name}" harus diunggah lewat UploadThing atau memakai path lokal.`,
-      );
-    }
+    validateImagePath(
+      variant.image,
+      `Gambar varian "${variant.name}"`,
+    );
+  }
+}
+
+function validateImagePath(value: string | null | undefined, label: string) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) return;
+
+  if (!isAllowedImagePath(trimmed)) {
+    throw new Error(
+      `${label} harus diunggah lewat UploadThing atau memakai path lokal.`,
+    );
   }
 }
 
@@ -136,7 +140,7 @@ export async function saveProduct(
         name: input.name.trim(),
         tagline: input.tagline.trim(),
         description: input.description.trim(),
-        image: input.image.trim(),
+        image: input.image?.trim() ?? "",
         features: input.features.map((feature) => feature.trim()).filter(Boolean),
         customNote: input.customNote?.trim() || null,
         published: input.published,
@@ -174,7 +178,7 @@ export async function saveProduct(
           description: variant.description.trim(),
           price: parsePrice(variant.price),
           priceUnit: variant.priceUnit?.trim() || null,
-          image: variant.image.trim(),
+          image: variant.image?.trim() ?? "",
           tags: variant.tags.map((tag) => tag.trim()).filter(Boolean),
           published: variant.published,
           sortOrder: Number.isFinite(variant.sortOrder)

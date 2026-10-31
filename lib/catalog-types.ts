@@ -157,3 +157,16 @@ export function isAllowedImagePath(value: string): boolean {
     return false;
   }
 }
+
+/** Gambar yang tampil saat produk/varian tidak punya foto. */
+export const PRODUCT_IMAGE_PLACEHOLDER = "/placeholder-product.png";
+
+/**
+ * Kembalikan src gambar yang aman dirender. Nilai kosong atau tidak valid
+ * otomatis jatuh ke placeholder, jadi gambar boleh dikosongkan di form admin.
+ */
+export function productImageSrc(value: string | null | undefined): string {
+  const trimmed = value?.trim() ?? "";
+
+  return isAllowedImagePath(trimmed) ? trimmed : PRODUCT_IMAGE_PLACEHOLDER;
+}

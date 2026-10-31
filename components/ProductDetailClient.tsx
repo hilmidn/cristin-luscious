@@ -4,7 +4,11 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ShoppingBag, Check, ChevronDown } from "lucide-react";
-import type { CatalogProduct, CatalogVariant } from "@/lib/catalog-types";
+import {
+  productImageSrc,
+  type CatalogProduct,
+  type CatalogVariant,
+} from "@/lib/catalog-types";
 
 interface Props {
   product: CatalogProduct;
@@ -19,7 +23,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
     product.variants?.[0]?.id ?? null
   );
 
-  const activeImage = selectedVariant?.image ?? product.image;
+  const activeImage = productImageSrc(selectedVariant?.image || product.image);
   const activePrice = selectedVariant?.price ?? null;
 
   return (
@@ -80,7 +84,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
                     }`}
                   >
                     <Image
-                      src={v.image}
+                      src={productImageSrc(v.image)}
                       alt={v.name}
                       fill
                       className="object-cover"
@@ -293,7 +297,7 @@ function RelatedProducts({
           >
             <div className="relative w-full aspect-square overflow-hidden bg-brand-bg">
               <Image
-                src={p.image}
+                src={productImageSrc(p.image)}
                 alt={p.name}
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
