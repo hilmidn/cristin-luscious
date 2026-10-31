@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter, Great_Vibes } from "next/font/google";
-import AOSInit from "@/components/AOSInit";
-import Preloader from "@/components/Preloader";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -36,9 +34,7 @@ export default function RootLayout({
       lang="en"
       className={`${playfair.variable} ${inter.variable} ${greatVibes.variable} h-full antialiased scroll-smooth`}
     >
-      <body className="min-h-full bg-zinc-950 text-white font-sans selection:bg-white selection:text-black">
-        <AOSInit />
-        <Preloader />
+      <body className="min-h-full bg-brand-bg text-brand-dark font-sans selection:bg-brand-dark selection:text-brand-bg">
         {children}
       </body>
     </html>

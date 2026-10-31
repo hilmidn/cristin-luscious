@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cristin Luscious
 
-## Getting Started
+Website premium cookies & dessert Cristin Luscious, dengan area admin privat di `/admin`.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router, Turbopack)
+- Tailwind CSS 4
+- NextAuth v4 (credentials, JWT session)
+- Prisma 7 + PostgreSQL (Neon)
+- bcryptjs
+
+## Development
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup Admin
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Isi `.env.local`:
 
-## Learn More
+```env
+DATABASE_URL="postgresql://...-pooler.../neondb?sslmode=require"
+DIRECT_URL="postgresql://.../neondb?sslmode=require"
+NEXTAUTH_SECRET="hasil openssl rand -base64 32"
+NEXTAUTH_URL="http://localhost:3000"
+ADMIN_NAME="Cristin Admin"
+ADMIN_EMAIL="admin@cristinluscious.com"
+ADMIN_PASSWORD="password-minimal-8-karakter"
+```
 
-To learn more about Next.js, take a look at the following resources:
+2. Jalankan migration dan seed admin:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:deploy
+npm run db:seed
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Buka `/admin`, login memakai `ADMIN_EMAIL` dan `ADMIN_PASSWORD`.
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Script | Fungsi |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` | Generate Prisma client + production build |
+| `npm run db:deploy` | Jalankan migration ke database |
+| `npm run db:push` | Sinkronisasi schema tanpa migration (prototyping) |
+| `npm run db:seed` | Buat/perbarui akun admin |
+| `npm run db:studio` | Prisma Studio |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Struktur Rute
+
+```text
+app/(site)              Website publik
+app/admin/login         Halaman login admin
+app/admin/(panel)       Dashboard admin (butuh login)
+app/api/auth/[...nextauth]  NextAuth handler
+proxy.ts                Proteksi /admin/*
+```
+
+## Deploy ke Vercel + Neon
+
+1. Set env `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL` di Vercel.
+2. `DATABASE_URL` memakai koneksi **pooled** Neon; `DIRECT_URL` memakai koneksi **direct**.
+3. Jalankan `npm run db:deploy` dan `npm run db:seed` sekali dari lokal/CI yang terhubung ke Neon.
+4. Build command sudah otomatis `prisma generate && next build`.
