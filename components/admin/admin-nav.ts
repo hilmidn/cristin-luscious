@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Croissant,
+  Layers,
   LayoutDashboard,
   Settings,
   ShoppingBag,
@@ -37,10 +38,20 @@ export const adminNav: AdminNavGroup[] = [
         href: "/admin/products",
         icon: Croissant,
       },
+    ],
+  },
+  {
+    title: "Penjualan",
+    items: [
       {
         label: "Pesanan",
         href: "/admin/orders",
         icon: ShoppingBag,
+      },
+      {
+        label: "Rekap Pesanan",
+        href: "/admin/orders/recap",
+        icon: Layers,
       },
     ],
   },

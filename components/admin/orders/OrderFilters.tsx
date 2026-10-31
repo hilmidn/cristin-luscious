@@ -1,0 +1,74 @@
+import {
+  ORDER_STATUS_LABELS,
+  type OrderSourceOption,
+  type OrderStatus,
+} from "@/lib/order-types";
+
+type OrderFiltersProps = {
+  statuses: OrderStatus[];
+  sources: OrderSourceOption[];
+  params: {
+    status?: string;
+    source?: string;
+    q?: string;
+  };
+};
+
+const fieldClass =
+  "border border-brand-border bg-brand-bg px-3 py-2.5 font-sans text-[10px] text-brand-dark outline-none placeholder:text-brand-muted focus:border-brand-dark";
+
+export default function OrderFilters({
+  statuses,
+  sources,
+  params,
+}: OrderFiltersProps) {
+  return (
+    <form
+      method="get"
+      className="mb-6 grid grid-cols-1 gap-3 border border-brand-border bg-brand-card/40 p-4 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+    >
+      <select
+        name="status"
+        defaultValue={params.status ?? ""}
+        aria-label="Filter status"
+        className={fieldClass}
+      >
+        <option value="">Semua status</option>
+        {statuses.map((status) => (
+          <option key={status} value={status}>
+            {ORDER_STATUS_LABELS[status]}
+          </option>
+        ))}
+      </select>
+
+      <select
+        name="source"
+        defaultValue={params.source ?? ""}
+        aria-label="Filter sumber"
+        className={fieldClass}
+      >
+        <option value="">Semua sumber</option>
+        {sources.map((option) => (
+          <option key={option.source} value={option.source}>
+            {option.source} ({option.count})
+          </option>
+        ))}
+      </select>
+
+      <input
+        name="q"
+        defaultValue={params.q ?? ""}
+        placeholder="Cari kode, nama, atau no. HP"
+        aria-label="Cari pesanan"
+        className={fieldClass}
+      />
+
+      <button
+        type="submit"
+        className="inline-flex items-center justify-center gap-2 border border-brand-dark bg-brand-dark px-5 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark"
+      >
+        Terapkan
+      </button>
+    </form>
+  );
+}

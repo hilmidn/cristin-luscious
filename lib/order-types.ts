@@ -5,6 +5,9 @@
  * memakai label, perhitungan total, dan format rupiah yang sama dengan server.
  */
 
+/** Semua tanggal & waktu di aplikasi mengikuti WIB. */
+export const JAKARTA_TIME_ZONE = "Asia/Jakarta";
+
 export type ServiceType = "PICKUP" | "ANTAR";
 
 export type OrderStatus = "BARU" | "DIPROSES" | "SELESAI" | "DIBATALKAN";
@@ -48,6 +51,8 @@ export type OrderInput = {
   customerName: string;
   phone: string;
   address: string;
+  /** Format YYYY-MM-DD. */
+  scheduledAt: string | null;
   serviceType: ServiceType;
   deliveryPoint: string | null;
   deliveryMapUrl: string | null;
@@ -76,6 +81,7 @@ export type AdminOrder = {
   customerName: string;
   phone: string;
   address: string;
+  scheduledAt: Date | null;
   serviceType: ServiceType;
   deliveryPoint: string | null;
   deliveryMapUrl: string | null;
@@ -88,20 +94,6 @@ export type AdminOrder = {
   createdAt: Date;
   updatedAt: Date;
   items: AdminOrderItem[];
-};
-
-export type AdminOrderListItem = {
-  id: string;
-  code: string;
-  customerName: string;
-  phone: string;
-  serviceType: ServiceType;
-  source: string | null;
-  status: OrderStatus;
-  total: number;
-  itemCount: number;
-  unitCount: number;
-  createdAt: Date;
 };
 
 export type OrderSourceOption = {
@@ -183,5 +175,53 @@ export function formatOrderDate(value: Date): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: JAKARTA_TIME_ZONE,
   }).format(value);
+}
+
+/**
+ * Tanggal jadwal disimpan sebagai kolom DATE (tanpa zona waktu). Format WIB
+ * dipakai agar tanggal tetap sama baik dibaca sebagai 00:00 UTC maupun 00:00 WIB.
+ */
+export function formatDateOnly(value: Date | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: JAKARTA_TIME_ZONE,
+  }).format(value);
+}
+
+/** Tanggal WIB dalam format YYYY-MM-DD. */
+export function jakartaDateKey(value: Date): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: JAKARTA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+/** Instant UTC untuk pukul 00:00 WIB pada tanggal tersebut. */
+export function jakartaStartOfDay(value: Date): Date {
+  return new Date(`${jakartaDateKey(value)}T00:00:00+07:00`);
+}
+
+/** Instant UTC untuk tanggal 1 pukul 00:00 WIB pada bulan tersebut. */
+export function jakartaStartOfMonth(value: Date): Date {
+  return new Date(`${jakartaDateKey(value).slice(0, 7)}-01T00:00:00+07:00`);
+}
+
+/** Nilai untuk <input type="date"> berdasarkan tanggal WIB. */
+export function toDateInputValue(value: Date | null | undefined): string {
+  return value ? jakartaDateKey(value) : "";
 }

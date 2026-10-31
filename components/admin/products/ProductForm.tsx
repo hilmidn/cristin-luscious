@@ -86,6 +86,16 @@ export default function ProductForm({ product }: ProductFormProps) {
     toDraft(product),
   );
 
+  // Kotak error ada di atas form; gulir ke atas setiap kali simpan gagal,
+  // termasuk saat pesan error-nya sama dengan percobaan sebelumnya.
+  function showError(message: string) {
+    setError(message);
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
   function updateVariant(key: string, patch: Partial<VariantDraft>) {
     setVariants((current) =>
       current.map((variant) =>
@@ -164,7 +174,7 @@ export default function ProductForm({ product }: ProductFormProps) {
       const result = await saveProduct(input);
 
       if (!result.ok) {
-        setError(result.error);
+        showError(result.error);
         return;
       }
 
@@ -178,10 +188,14 @@ export default function ProductForm({ product }: ProductFormProps) {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 border border-brand-dark bg-brand-card px-4 py-3"
+          className="flex items-start gap-3 border border-red-500 bg-red-50 px-4 py-3"
         >
-          <AlertCircle size={15} strokeWidth={1.6} className="mt-0.5 shrink-0" />
-          <p className="font-sans text-[11px] leading-relaxed text-brand-dark">
+          <AlertCircle
+            size={15}
+            strokeWidth={1.6}
+            className="mt-0.5 shrink-0 text-red-600"
+          />
+          <p className="font-sans text-[11px] font-semibold leading-relaxed text-red-700">
             {error}
           </p>
         </div>

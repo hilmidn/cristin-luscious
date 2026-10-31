@@ -8,6 +8,8 @@ import {
   calculateOrderTotals,
   isMapUrl,
   isValidPhone,
+  jakartaDateKey,
+  jakartaStartOfDay,
   normalizePhone,
   ORDER_STATUSES,
   SERVICE_TYPES,
@@ -78,6 +80,27 @@ function parseServiceType(value: ServiceType): ServiceType {
   return value;
 }
 
+/** Tanggal jadwal disimpan sebagai kolom DATE (tengah malam UTC). */
+function parseScheduledAt(value: string | null | undefined): Date | null {
+  const raw = value?.trim() ?? "";
+
+  if (!raw) {
+    return null;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    throw new Error("Tanggal ambil / kirim tidak valid.");
+  }
+
+  const date = new Date(`${raw}T00:00:00.000Z`);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Tanggal ambil / kirim tidak valid.");
+  }
+
+  return date;
+}
+
 type ResolvedItem = {
   productId: string | null;
   variantId: string | null;
@@ -99,11 +122,10 @@ function isCodeConflict(error: unknown): boolean {
 }
 
 function codePrefix(date: Date) {
-  const year = String(date.getFullYear()).slice(2);
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  // Tanggal WIB, bukan zona waktu server.
+  const [year, month, day] = jakartaDateKey(date).split("-");
 
-  return `CL-${year}${month}${day}`;
+  return `CL-${year.slice(2)}${month}${day}`;
 }
 
 export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
@@ -128,6 +150,12 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
     }
 
     const serviceType = parseServiceType(input.serviceType);
+
+    const scheduledAt = parseScheduledAt(input.scheduledAt);
+    if (!scheduledAt) {
+      throw new Error("Tanggal ambil / kirim wajib diisi.");
+    }
+
     const deliveryPoint = input.deliveryPoint?.trim() ?? "";
 
     if (serviceType === "ANTAR" && deliveryPoint.length < 5) {
@@ -279,6 +307,7 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
       customerName,
       phone,
       address,
+      scheduledAt,
       serviceType,
       deliveryPoint: serviceType === "ANTAR" ? deliveryPoint : null,
       deliveryMapUrl:
@@ -315,13 +344,10 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
 
           if (!code) {
             const now = new Date();
-            const startOfDay = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate(),
+            const startOfDay = jakartaStartOfDay(now);
+            const startOfNextDay = new Date(
+              startOfDay.getTime() + 24 * 60 * 60 * 1000,
             );
-            const startOfNextDay = new Date(startOfDay);
-            startOfNextDay.setDate(startOfNextDay.getDate() + 1);
 
             const todayCount = await tx.order.count({
               where: { createdAt: { gte: startOfDay, lt: startOfNextDay } },

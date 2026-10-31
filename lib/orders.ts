@@ -1,9 +1,9 @@
 import "server-only";
 
 import { getPrisma } from "./prisma";
+import { jakartaStartOfMonth } from "./order-types";
 import type {
   AdminOrder,
-  AdminOrderListItem,
   OrderSourceOption,
   OrderStatus,
   OrderableProduct,
@@ -11,76 +11,67 @@ import type {
 } from "./order-types";
 
 type OrderFilters = {
-  status?: OrderStatus;
+  statuses?: OrderStatus[];
   source?: string;
   q?: string;
 };
 
+const orderItemSelect = {
+  id: true,
+  variantId: true,
+  productId: true,
+  productName: true,
+  variantName: true,
+  unitPrice: true,
+  priceUnit: true,
+  quantity: true,
+  lineTotal: true,
+} as const;
+
 const orderItemsInclude = {
+  select: orderItemSelect,
   orderBy: [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }],
 };
 
-export async function getAdminOrders(
-  filters: OrderFilters = {},
-): Promise<AdminOrderListItem[]> {
-  const search = filters.q?.trim();
+type OrderRow = {
+  id: string;
+  code: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  scheduledAt: Date | null;
+  serviceType: string;
+  deliveryPoint: string | null;
+  deliveryMapUrl: string | null;
+  source: string | null;
+  note: string | null;
+  shippingCost: number;
+  subtotal: number;
+  total: number;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  items: {
+    id: string;
+    variantId: string | null;
+    productId: string | null;
+    productName: string;
+    variantName: string;
+    unitPrice: number | null;
+    priceUnit: string | null;
+    quantity: number;
+    lineTotal: number;
+  }[];
+};
 
-  const orders = await getPrisma().order.findMany({
-    where: {
-      ...(filters.status ? { status: filters.status } : {}),
-      ...(filters.source ? { source: filters.source } : {}),
-      ...(search
-        ? {
-            OR: [
-              { code: { contains: search, mode: "insensitive" as const } },
-              {
-                customerName: {
-                  contains: search,
-                  mode: "insensitive" as const,
-                },
-              },
-              { phone: { contains: search } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: {
-      items: { select: { quantity: true } },
-    },
-  });
-
-  return orders.map((order) => ({
-    id: order.id,
-    code: order.code,
-    customerName: order.customerName,
-    phone: order.phone,
-    serviceType: order.serviceType as ServiceType,
-    source: order.source,
-    status: order.status as OrderStatus,
-    total: order.total,
-    itemCount: order.items.length,
-    unitCount: order.items.reduce((total, item) => total + item.quantity, 0),
-    createdAt: order.createdAt,
-  }));
-}
-
-export async function getAdminOrderById(id: string): Promise<AdminOrder | null> {
-  const order = await getPrisma().order.findUnique({
-    where: { id },
-    include: { items: orderItemsInclude },
-  });
-
-  if (!order) {
-    return null;
-  }
-
+function toAdminOrder(order: OrderRow): AdminOrder {
   return {
     id: order.id,
     code: order.code,
     customerName: order.customerName,
     phone: order.phone,
     address: order.address,
+    scheduledAt: order.scheduledAt,
     serviceType: order.serviceType as ServiceType,
     deliveryPoint: order.deliveryPoint,
     deliveryMapUrl: order.deliveryMapUrl,
@@ -107,6 +98,50 @@ export async function getAdminOrderById(id: string): Promise<AdminOrder | null> 
 }
 
 /**
+ * Daftar pesanan sudah membawa detail lengkap (item, alamat, ongkir) supaya
+ * popup detail di tabel bisa terbuka tanpa request tambahan.
+ */
+export async function getAdminOrders(
+  filters: OrderFilters = {},
+): Promise<AdminOrder[]> {
+  const search = filters.q?.trim();
+
+  const orders = await getPrisma().order.findMany({
+    where: {
+      ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
+      ...(filters.source ? { source: filters.source } : {}),
+      ...(search
+        ? {
+            OR: [
+              { code: { contains: search, mode: "insensitive" as const } },
+              {
+                customerName: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              { phone: { contains: search } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    include: { items: orderItemsInclude },
+  });
+
+  return orders.map(toAdminOrder);
+}
+
+export async function getAdminOrderById(id: string): Promise<AdminOrder | null> {
+  const order = await getPrisma().order.findUnique({
+    where: { id },
+    include: { items: orderItemsInclude },
+  });
+
+  return order ? toAdminOrder(order) : null;
+}
+
+/**
  * Daftar sumber pesanan tanpa tabel master: diambil dari nilai `source` yang
  * sudah pernah dipakai, diurutkan dari yang paling sering.
  */
@@ -129,25 +164,30 @@ export async function getOrderSources(): Promise<OrderSourceOption[]> {
 export async function getOrderStats() {
   const prisma = getPrisma();
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfMonth = jakartaStartOfMonth(now);
 
-  const [total, baru, diproses, revenue] = await Promise.all([
-    prisma.order.count(),
-    prisma.order.count({ where: { status: "BARU" } }),
-    prisma.order.count({ where: { status: "DIPROSES" } }),
-    prisma.order.aggregate({
-      _sum: { total: true },
-      where: {
-        status: { not: "DIBATALKAN" },
-        createdAt: { gte: startOfMonth },
-      },
-    }),
-  ]);
+  const [total, baru, diproses, selesai, dibatalkan, revenue] =
+    await Promise.all([
+      prisma.order.count(),
+      prisma.order.count({ where: { status: "BARU" } }),
+      prisma.order.count({ where: { status: "DIPROSES" } }),
+      prisma.order.count({ where: { status: "SELESAI" } }),
+      prisma.order.count({ where: { status: "DIBATALKAN" } }),
+      prisma.order.aggregate({
+        _sum: { total: true },
+        where: {
+          status: { not: "DIBATALKAN" },
+          createdAt: { gte: startOfMonth },
+        },
+      }),
+    ]);
 
   return {
     total,
     baru,
     diproses,
+    selesai,
+    dibatalkan,
     monthRevenue: revenue._sum.total ?? 0,
   };
 }

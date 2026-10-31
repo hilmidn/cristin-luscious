@@ -24,6 +24,19 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const initial = user.name.trim().charAt(0).toUpperCase() || "A";
 
+  // Href terpanjang yang cocok, supaya /admin/orders/recap tidak ikut
+  // menyalakan menu /admin/orders.
+  const activeHref = adminNav
+    .flatMap((group) => group.items)
+    .filter((item) => !item.soon)
+    .map((item) => item.href)
+    .filter(
+      (href) =>
+        pathname === href ||
+        (href !== "/admin" && pathname.startsWith(`${href}/`)),
+    )
+    .sort((a, b) => b.length - a.length)[0];
+
   return (
     <>
       {/* Mobile overlay */}
@@ -79,11 +92,7 @@ export default function AdminSidebar({
                 <ul className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = item.icon;
-                    const isActive =
-                      !item.soon &&
-                      (pathname === item.href ||
-                        (item.href !== "/admin" &&
-                          pathname.startsWith(`${item.href}/`)));
+                    const isActive = !item.soon && item.href === activeHref;
 
                     if (item.soon) {
                       return (

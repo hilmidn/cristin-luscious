@@ -81,6 +81,8 @@ model Order {
   customerName   String
   phone          String
   address        String
+  // Tanggal barang diambil / dikirim (pre-order). Disimpan sebagai DATE.
+  scheduledAt    DateTime?   @db.Date
   serviceType    ServiceType @default(PICKUP)
   // Wajib diisi saat serviceType = ANTAR (divalidasi di orders/actions.ts).
   deliveryPoint  String?

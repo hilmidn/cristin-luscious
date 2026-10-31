@@ -42,7 +42,11 @@ Website Cristin Luscious (cookies & dessert premium) + area admin privat di `/ad
 - `OrderItem` menyimpan **snapshot** `productName`/`variantName`/`unitPrice`; relasi `variantId`/`productId` nullable dengan `onDelete: SetNull` supaya `saveProduct` tetap bisa menghapus varian yang sudah dipesan.
 - Harga item bervarian selalu diambil dari DB di server; client hanya mengirim pilihan + quantity. Item produk tanpa varian (custom) boleh pakai harga manual.
 - `source` **tanpa tabel master**: `getOrderSources()` memakai `groupBy` dari data pesanan dan dipakai sebagai `<datalist>` + filter.
+- Daftar pesanan dipisah dua halaman: `/admin/orders` hanya status aktif (`BARU`, `DIPROSES`), sedangkan `/admin/orders/recap` menampung `SELESAI` dan `DIBATALKAN`. Filter status per halaman dibatasi ke status yang relevan lewat `getAdminOrders({ statuses })`.
+- Tabel dan filter dipakai bersama oleh kedua halaman: `components/admin/orders/OrderTable.tsx` + `OrderFilters.tsx`. Detail dibuka sebagai popup (`OrderDetailDialog.tsx`, data lengkap sudah ikut di query list); edit tetap halaman `/admin/orders/[id]`.
 - Helper murni (label, `formatRupiah`, `calculateOrderTotals`, `normalizePhone`) ada di `lib/order-types.ts`; query server-only di `lib/orders.ts`. Form ada di `components/admin/orders/OrderForm.tsx`.
+- **Zona waktu: selalu WIB (`Asia/Jakarta`)**, bukan zona server. Format tampilan, prefix kode invoice harian, batas "hari ini", dan awal bulan statistik memakai `jakartaDateKey()` / `jakartaStartOfDay()` / `jakartaStartOfMonth()` dari `lib/order-types.ts`.
+- `Order.scheduledAt` adalah tanggal ambil/kirim (`DATE`, tanpa jam) dan wajib diisi di form; nullable di DB hanya untuk kompatibilitas data lama.
 
 ## Auth & routing
 

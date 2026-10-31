@@ -19,7 +19,9 @@ import {
   SERVICE_LABELS,
   SERVICE_TYPES,
   calculateOrderTotals,
+  formatDateOnly,
   formatRupiah,
+  toDateInputValue,
   type AdminOrder,
   type OrderInput,
   type OrderSourceOption,
@@ -146,6 +148,9 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
   const [customerName, setCustomerName] = useState(order?.customerName ?? "");
   const [phone, setPhone] = useState(order?.phone ?? "");
   const [address, setAddress] = useState(order?.address ?? "");
+  const [scheduledDate, setScheduledDate] = useState(
+    toDateInputValue(order?.scheduledAt),
+  );
   const [serviceType, setServiceType] = useState<ServiceType>(
     order?.serviceType ?? "PICKUP",
   );
@@ -162,6 +167,16 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
   );
   const [status, setStatus] = useState<OrderStatus>(order?.status ?? "BARU");
   const [items, setItems] = useState<ItemDraft[]>(() => toDrafts(order));
+
+  // Kotak error ada di atas form; gulir ke atas setiap kali simpan gagal,
+  // termasuk saat pesan error-nya sama dengan percobaan sebelumnya.
+  function showError(message: string) {
+    setError(message);
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
 
   const isDelivery = serviceType === "ANTAR";
 
@@ -241,6 +256,7 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
       customerName,
       phone,
       address,
+      scheduledAt: scheduledDate || null,
       serviceType,
       deliveryPoint: isDelivery ? deliveryPoint : null,
       deliveryMapUrl: isDelivery ? deliveryMapUrl.trim() || null : null,
@@ -268,7 +284,7 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
       const result = await saveOrder(input);
 
       if (!result.ok) {
-        setError(result.error);
+        showError(result.error);
         return;
       }
 
@@ -282,10 +298,14 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 border border-brand-dark bg-brand-card px-4 py-3"
+          className="flex items-start gap-3 border border-red-500 bg-red-50 px-4 py-3"
         >
-          <AlertCircle size={15} strokeWidth={1.6} className="mt-0.5 shrink-0" />
-          <p className="font-sans text-[11px] leading-relaxed text-brand-dark">
+          <AlertCircle
+            size={15}
+            strokeWidth={1.6}
+            className="mt-0.5 shrink-0 text-red-600"
+          />
+          <p className="font-sans text-[11px] font-semibold leading-relaxed text-red-700">
             {error}
           </p>
         </div>
@@ -373,6 +393,23 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
               </div>
 
               <div>
+                <label htmlFor="scheduledDate" className={labelClass}>
+                  Tanggal Ambil / Kirim
+                </label>
+                <input
+                  id="scheduledDate"
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(event) => setScheduledDate(event.target.value)}
+                  required
+                  className={inputClass}
+                />
+                <p className="mt-1.5 font-sans text-[9px] text-brand-muted">
+                  Tanggal barang diambil (pickup) atau dikirim (antar).
+                </p>
+              </div>
+
+              <div className="sm:col-span-2">
                 <label htmlFor="source" className={labelClass}>
                   Sumber{" "}
                   <span className="font-normal tracking-normal text-brand-muted">
@@ -649,6 +686,17 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
                 <span className="text-brand-text">Kode</span>
                 <span className="font-mono text-[11px] font-semibold text-brand-dark">
                   {order?.code ?? "Otomatis saat disimpan"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-brand-text">Ambil / Kirim</span>
+                <span className="font-semibold text-brand-dark">
+                  {formatDateOnly(
+                    scheduledDate
+                      ? new Date(`${scheduledDate}T00:00:00.000Z`)
+                      : null,
+                  )}
                 </span>
               </div>
 
