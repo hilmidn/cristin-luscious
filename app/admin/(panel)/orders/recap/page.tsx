@@ -4,8 +4,18 @@ import { ArrowLeft } from "lucide-react";
 import PageHeading from "@/components/admin/PageHeading";
 import OrderFilters from "@/components/admin/orders/OrderFilters";
 import OrderTable from "@/components/admin/orders/OrderTable";
-import { getAdminOrders, getOrderSources, getOrderStats } from "@/lib/orders";
-import { formatRupiah, type OrderStatus } from "@/lib/order-types";
+import {
+  getAdminOrders,
+  getClosedOrderMonths,
+  getOrderSources,
+  getRecapStats,
+} from "@/lib/orders";
+import {
+  formatRupiah,
+  jakartaMonthKey,
+  monthKeyLabel,
+  type OrderStatus,
+} from "@/lib/order-types";
 
 export const metadata: Metadata = {
   title: "Rekap Pesanan",
@@ -21,6 +31,7 @@ type Props = {
     status?: string;
     source?: string;
     q?: string;
+    month?: string;
   }>;
 };
 
@@ -31,15 +42,34 @@ export default async function OrderRecapPage({ searchParams }: Props) {
     : undefined;
   const statuses = requestedStatus ? [requestedStatus] : CLOSED_STATUSES;
 
+  const currentMonth = jakartaMonthKey(new Date());
+  const closedMonths = await getClosedOrderMonths();
+  // Bulan berjalan selalu ada di pilihan agar filter default tetap terbaca.
+  const monthOptions = [...new Set([currentMonth, ...closedMonths])].sort(
+    (a, b) => b.localeCompare(a),
+  );
+
+  const monthKey =
+    params.month === "all"
+      ? null
+      : monthOptions.includes(params.month ?? "")
+        ? (params.month as string)
+        : currentMonth;
+
   const [orders, sources, stats] = await Promise.all([
     getAdminOrders({
       statuses,
       source: params.source?.trim() || undefined,
       q: params.q?.trim() || undefined,
+      month: monthKey ?? undefined,
     }),
     getOrderSources(),
-    getOrderStats(),
+    getRecapStats(monthKey),
   ]);
+
+  const periodLabel = monthKey
+    ? monthKeyLabel(monthKey)
+    : "Semua bulan";
 
   return (
     <>
@@ -47,7 +77,7 @@ export default async function OrderRecapPage({ searchParams }: Props) {
         eyebrow="Laporan"
         title="Rekap"
         accent="pesanan"
-        description="Arsip pesanan yang sudah selesai atau dibatalkan. Pesanan aktif tetap di halaman Pesanan agar daftar kerja tidak tercampur."
+        description="Arsip pesanan yang sudah selesai atau dibatalkan, dikelompokkan per bulan berdasarkan tanggal ambil / kirim. Pesanan aktif tetap di halaman Pesanan."
         actions={
           <Link
             href="/admin/orders"
@@ -67,6 +97,9 @@ export default async function OrderRecapPage({ searchParams }: Props) {
           <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
             {stats.selesai}
           </p>
+          <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-brand-muted">
+            {periodLabel}
+          </p>
         </div>
         <div className="border border-brand-border bg-brand-card px-4 py-3">
           <p className="font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
@@ -75,13 +108,16 @@ export default async function OrderRecapPage({ searchParams }: Props) {
           <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
             {stats.dibatalkan}
           </p>
+          <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-brand-muted">
+            {periodLabel}
+          </p>
         </div>
         <div className="border border-brand-border bg-brand-card px-4 py-3">
           <p className="font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
-            Pendapatan Bulan Ini
+            Pendapatan
           </p>
           <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
-            {formatRupiah(stats.monthRevenue)}
+            {formatRupiah(stats.revenue)}
           </p>
           <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-brand-muted">
             Selesai · tgl ambil/kirim
@@ -92,7 +128,7 @@ export default async function OrderRecapPage({ searchParams }: Props) {
             Nilai Dibatalkan
           </p>
           <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
-            {formatRupiah(stats.monthCancelled)}
+            {formatRupiah(stats.cancelled)}
           </p>
           <p className="mt-1 font-sans text-[8px] uppercase tracking-[0.14em] text-brand-muted">
             Batal · tgl ambil/kirim
@@ -100,11 +136,18 @@ export default async function OrderRecapPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <OrderFilters statuses={CLOSED_STATUSES} sources={sources} params={params} />
+      <OrderFilters
+        statuses={CLOSED_STATUSES}
+        sources={sources}
+        months={monthOptions}
+        params={{ ...params, month: monthKey ?? "all" }}
+      />
 
       <OrderTable
         orders={orders}
-        emptyTitle="Belum ada pesanan selesai"
+        emptyTitle={
+          monthKey ? `Belum ada pesanan tertutup di ${periodLabel}` : "Belum ada pesanan selesai"
+        }
         emptyDescription="Pesanan yang ditandai Selesai atau Dibatalkan akan pindah ke rekap ini."
         emptyAction={{ href: "/admin/orders", label: "Lihat Pesanan Aktif" }}
       />

@@ -1,7 +1,13 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "./prisma";
-import { jakartaMonthRange } from "./order-types";
+import {
+  jakartaMonthKey,
+  monthKeyLabel,
+  monthRangeFromKey,
+  shiftMonthKeyValue,
+} from "./order-types";
 import type {
   AdminOrder,
   OrderSourceOption,
@@ -14,7 +20,25 @@ type OrderFilters = {
   statuses?: OrderStatus[];
   source?: string;
   q?: string;
+  /** Bulan WIB `YYYY-MM`, berbasis tanggal ambil/kirim (fallback `createdAt`). */
+  month?: string;
+  limit?: number;
 };
+
+/**
+ * Filter bulan untuk order: tanggal ambil/kirim (`scheduledAt`) karena pesanan
+ * ini pre-order. Data lama tanpa jadwal jatuh ke `createdAt`.
+ */
+function monthFilter(monthKey: string): Prisma.OrderWhereInput {
+  const { start, end } = monthRangeFromKey(monthKey);
+
+  return {
+    OR: [
+      { scheduledAt: { gte: start, lt: end } },
+      { scheduledAt: null, createdAt: { gte: start, lt: end } },
+    ],
+  };
+}
 
 const orderItemSelect = {
   id: true,
@@ -105,27 +129,35 @@ export async function getAdminOrders(
   filters: OrderFilters = {},
 ): Promise<AdminOrder[]> {
   const search = filters.q?.trim();
+  const conditions: Prisma.OrderWhereInput[] = [];
+
+  if (search) {
+    conditions.push({
+      OR: [
+        { code: { contains: search, mode: "insensitive" as const } },
+        {
+          customerName: {
+            contains: search,
+            mode: "insensitive" as const,
+          },
+        },
+        { phone: { contains: search } },
+      ],
+    });
+  }
+
+  if (filters.month) {
+    conditions.push(monthFilter(filters.month));
+  }
 
   const orders = await getPrisma().order.findMany({
     where: {
       ...(filters.statuses?.length ? { status: { in: filters.statuses } } : {}),
       ...(filters.source ? { source: filters.source } : {}),
-      ...(search
-        ? {
-            OR: [
-              { code: { contains: search, mode: "insensitive" as const } },
-              {
-                customerName: {
-                  contains: search,
-                  mode: "insensitive" as const,
-                },
-              },
-              { phone: { contains: search } },
-            ],
-          }
-        : {}),
+      ...(conditions.length ? { AND: conditions } : {}),
     },
     orderBy: { createdAt: "desc" },
+    take: filters.limit,
     include: { items: orderItemsInclude },
   });
 
@@ -163,20 +195,7 @@ export async function getOrderSources(): Promise<OrderSourceOption[]> {
 
 export async function getOrderStats() {
   const prisma = getPrisma();
-  const now = new Date();
-  const { start: startOfMonth, end: startOfNextMonth } = jakartaMonthRange(now);
-
-  /**
-   * Bulan statistik memakai tanggal ambil/kirim (`scheduledAt`) karena pesanan
-   * ini pre-order: pendapatan diakui saat barang diserahkan, bukan saat
-   * dicatat. Data lama tanpa jadwal jatuh ke `createdAt`.
-   */
-  const thisMonth = {
-    OR: [
-      { scheduledAt: { gte: startOfMonth, lt: startOfNextMonth } },
-      { scheduledAt: null, createdAt: { gte: startOfMonth, lt: startOfNextMonth } },
-    ],
-  };
+  const thisMonth = monthFilter(jakartaMonthKey(new Date()));
 
   const [total, baru, diproses, selesai, dibatalkan, revenue, cancelled] =
     await Promise.all([
@@ -206,6 +225,132 @@ export async function getOrderStats() {
     monthRevenue: revenue._sum.total ?? 0,
     monthCancelled: cancelled._sum.total ?? 0,
   };
+}
+
+export type RecapStats = {
+  monthKey: string | null;
+  selesai: number;
+  dibatalkan: number;
+  revenue: number;
+  cancelled: number;
+};
+
+/**
+ * Statistik pesanan tertutup untuk satu bulan (`monthKey` null = semua bulan).
+ * Dipakai halaman Rekap Pesanan agar kartu angka ikut filter bulan.
+ */
+export async function getRecapStats(
+  monthKey: string | null,
+): Promise<RecapStats> {
+  const prisma = getPrisma();
+  const month = monthKey ? monthFilter(monthKey) : {};
+
+  const [selesai, dibatalkan, revenue, cancelled] = await Promise.all([
+    prisma.order.count({ where: { status: "SELESAI", ...month } }),
+    prisma.order.count({ where: { status: "DIBATALKAN", ...month } }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { status: "SELESAI", ...month },
+    }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { status: "DIBATALKAN", ...month },
+    }),
+  ]);
+
+  return {
+    monthKey,
+    selesai,
+    dibatalkan,
+    revenue: revenue._sum.total ?? 0,
+    cancelled: cancelled._sum.total ?? 0,
+  };
+}
+
+/** Bulan yang sudah punya pesanan selesai / batal, terbaru dulu. */
+export async function getClosedOrderMonths(): Promise<string[]> {
+  const rows = await getPrisma().order.findMany({
+    where: { status: { in: ["SELESAI", "DIBATALKAN"] } },
+    select: { scheduledAt: true, createdAt: true },
+  });
+
+  const keys = new Set(
+    rows.map((row) => jakartaMonthKey(row.scheduledAt ?? row.createdAt)),
+  );
+
+  return [...keys].sort((a, b) => b.localeCompare(a));
+}
+
+export type OrderTrendPoint = {
+  monthKey: string;
+  label: string;
+  shortLabel: string;
+  revenue: number;
+  cancelled: number;
+  selesai: number;
+  dibatalkan: number;
+};
+
+/**
+ * Pendapatan & nilai batal per bulan untuk `monthCount` bulan terakhir
+ * (termasuk bulan berjalan), dihitung sekali query lalu dikelompokkan di
+ * memori.
+ */
+export async function getOrderTrend(
+  monthCount = 6,
+): Promise<OrderTrendPoint[]> {
+  const now = new Date();
+  const current = jakartaMonthKey(now);
+  const monthKeys = Array.from({ length: monthCount }, (_, index) =>
+    shiftMonthKeyValue(current, index - (monthCount - 1)),
+  );
+  const earliest = monthRangeFromKey(monthKeys[0]);
+
+  const rows = await getPrisma().order.findMany({
+    where: {
+      status: { in: ["SELESAI", "DIBATALKAN"] },
+      OR: [
+        { scheduledAt: { gte: earliest.start } },
+        { scheduledAt: null, createdAt: { gte: earliest.start } },
+      ],
+    },
+    select: { status: true, total: true, scheduledAt: true, createdAt: true },
+  });
+
+  const buckets = new Map(
+    monthKeys.map((monthKey) => [
+      monthKey,
+      { revenue: 0, cancelled: 0, selesai: 0, dibatalkan: 0 },
+    ]),
+  );
+
+  for (const row of rows) {
+    const bucket = buckets.get(jakartaMonthKey(row.scheduledAt ?? row.createdAt));
+
+    if (!bucket) {
+      continue;
+    }
+
+    if (row.status === "SELESAI") {
+      bucket.revenue += row.total;
+      bucket.selesai += 1;
+    } else {
+      bucket.cancelled += row.total;
+      bucket.dibatalkan += 1;
+    }
+  }
+
+  return monthKeys.map((monthKey) => ({
+    monthKey,
+    label: monthKeyLabel(monthKey),
+    shortLabel: monthKeyLabel(monthKey, "short").split(" ")[0],
+    ...(buckets.get(monthKey) ?? {
+      revenue: 0,
+      cancelled: 0,
+      selesai: 0,
+      dibatalkan: 0,
+    }),
+  }));
 }
 
 /**

@@ -1,4 +1,5 @@
 import {
+  monthKeyLabel,
   ORDER_STATUS_LABELS,
   type OrderSourceOption,
   type OrderStatus,
@@ -11,7 +12,10 @@ type OrderFiltersProps = {
     status?: string;
     source?: string;
     q?: string;
+    month?: string;
   };
+  /** Bila diisi, filter bulan tampil (dipakai halaman Rekap Pesanan). */
+  months?: string[];
 };
 
 const fieldClass =
@@ -21,12 +25,35 @@ export default function OrderFilters({
   statuses,
   sources,
   params,
+  months,
 }: OrderFiltersProps) {
+  const hasMonthFilter = Boolean(months?.length);
+
   return (
     <form
       method="get"
-      className="mb-6 grid grid-cols-1 gap-3 border border-brand-border bg-brand-card/40 p-4 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+      className={`mb-6 grid grid-cols-1 gap-3 border border-brand-border bg-brand-card/40 p-4 sm:grid-cols-2 ${
+        hasMonthFilter
+          ? "lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
+          : "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+      }`}
     >
+      {hasMonthFilter && (
+        <select
+          name="month"
+          defaultValue={params.month ?? "all"}
+          aria-label="Filter bulan"
+          className={fieldClass}
+        >
+          <option value="all">Semua bulan</option>
+          {months?.map((monthKey) => (
+            <option key={monthKey} value={monthKey}>
+              {monthKeyLabel(monthKey)}
+            </option>
+          ))}
+        </select>
+      )}
+
       <select
         name="status"
         defaultValue={params.status ?? ""}
