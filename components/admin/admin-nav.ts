@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  CalendarDays,
   Croissant,
   Layers,
   LayoutDashboard,
@@ -52,6 +53,16 @@ export const adminNav: AdminNavGroup[] = [
         label: "Rekap Pesanan",
         href: "/admin/orders/recap",
         icon: Layers,
+      },
+    ],
+  },
+  {
+    title: "Produksi",
+    items: [
+      {
+        label: "Kalender Produksi",
+        href: "/admin/production",
+        icon: CalendarDays,
       },
     ],
   },

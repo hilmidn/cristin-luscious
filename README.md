@@ -61,6 +61,7 @@ app/(site)              Website publik
 app/admin/login         Halaman login admin
 app/admin/(panel)       Dashboard admin (butuh login)
 app/admin/(panel)/orders    Pesanan & invoice (CRUD, ongkir, kode CL-YYMMDD-NNN)
+app/admin/(panel)/production  Kalender produksi + tahap per item pesanan
 app/api/auth/[...nextauth]  NextAuth handler
 proxy.ts                Proteksi /admin/*
 ```

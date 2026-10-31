@@ -42,6 +42,7 @@ async function requireAdmin() {
 function revalidateOrders(id?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/production");
 
   if (id) {
     revalidatePath(`/admin/orders/${id}`);
@@ -323,7 +324,7 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
     const existing = input.id
       ? await prisma.order.findUnique({
           where: { id: input.id },
-          select: { id: true, code: true },
+          include: { items: { select: { id: true, variantId: true, productId: true, quantity: true } } },
         })
       : null;
 
@@ -367,13 +368,102 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
                 select: { id: true, code: true },
               });
 
-          await tx.orderItem.deleteMany({ where: { orderId: order.id } });
-          await tx.orderItem.createMany({
-            data: resolvedItems.map((item) => ({
-              ...item,
-              orderId: order.id,
-            })),
+          // Item di-update berdasarkan id (bukan delete-recreate) supaya
+          // production_tasks yang menempel tidak kehilangan progres.
+          // 1. Dapatkan existing items dari DB, dikelompokkan per varian/produk.
+          const dbItems = existing
+            ? await tx.orderItem.findMany({
+                where: { orderId: existing.id },
+                select: {
+                  id: true,
+                  variantId: true,
+                  productId: true,
+                  productName: true,
+                  variantName: true,
+                },
+              })
+            : [];
+
+          const dbItemQueues = new Map<string, string[]>();
+
+          for (const item of dbItems) {
+            const key =
+              item.variantId ??
+              item.productId ??
+              `${item.productName}::${item.variantName}`;
+            const queue = dbItemQueues.get(key) ?? [];
+            queue.push(item.id);
+            dbItemQueues.set(key, queue);
+          }
+
+          // 2. Update item yang cocok, create sisanya.
+          for (const resolved of resolvedItems) {
+            const key =
+              resolved.variantId ??
+              resolved.productId ??
+              `${resolved.productName}::${resolved.variantName}`;
+            const existingItemId = dbItemQueues.get(key)?.shift();
+
+            if (existingItemId) {
+              // Update item yang sudah ada
+              await tx.orderItem.update({
+                where: { id: existingItemId },
+                data: {
+                  variantId: resolved.variantId,
+                  productId: resolved.productId,
+                  productName: resolved.productName,
+                  variantName: resolved.variantName,
+                  unitPrice: resolved.unitPrice,
+                  priceUnit: resolved.priceUnit,
+                  quantity: resolved.quantity,
+                  lineTotal: resolved.lineTotal,
+                  sortOrder: resolved.sortOrder,
+                },
+              });
+            } else {
+              // Create item baru
+              await tx.orderItem.create({
+                data: {
+                  variantId: resolved.variantId,
+                  productId: resolved.productId,
+                  productName: resolved.productName,
+                  variantName: resolved.variantName,
+                  unitPrice: resolved.unitPrice,
+                  priceUnit: resolved.priceUnit,
+                  quantity: resolved.quantity,
+                  lineTotal: resolved.lineTotal,
+                  sortOrder: resolved.sortOrder,
+                  orderId: order.id,
+                },
+              });
+            }
+          }
+
+          // 3. Hapus item yang sudah tidak ada di form. Task ikut terhapus
+          //    lewat onDelete: Cascade.
+          const idsToDelete = Array.from(dbItemQueues.values()).flat();
+          if (idsToDelete.length > 0) {
+            await tx.orderItem.deleteMany({ where: { id: { in: idsToDelete } } });
+          }
+
+          // 4. Satu task produksi per item. Tanggal kerja mengikuti tanggal
+          //    ambil/kirim pesanan; tahap yang sudah berjalan dipertahankan.
+          const savedItems = await tx.orderItem.findMany({
+            where: { orderId: order.id },
+            select: { id: true },
           });
+
+          for (const item of savedItems) {
+            await tx.productionTask.upsert({
+              where: { orderItemId: item.id },
+              create: {
+                orderId: order.id,
+                orderItemId: item.id,
+                scheduledAt,
+              },
+              update: { scheduledAt },
+            });
+          }
 
           return order;
         });

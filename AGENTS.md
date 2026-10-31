@@ -47,6 +47,17 @@ Website Cristin Luscious (cookies & dessert premium) + area admin privat di `/ad
 - Helper murni (label, `formatRupiah`, `calculateOrderTotals`, `normalizePhone`) ada di `lib/order-types.ts`; query server-only di `lib/orders.ts`. Form ada di `components/admin/orders/OrderForm.tsx`.
 - **Zona waktu: selalu WIB (`Asia/Jakarta`)**, bukan zona server. Format tampilan, prefix kode invoice harian, batas "hari ini", dan awal bulan statistik memakai `jakartaDateKey()` / `jakartaStartOfDay()` / `jakartaStartOfMonth()` dari `lib/order-types.ts`.
 - `Order.scheduledAt` adalah tanggal ambil/kirim (`DATE`, tanpa jam) dan wajib diisi di form; nullable di DB hanya untuk kompatibilitas data lama.
+- Setiap `OrderItem` otomatis mendapat satu `ProductionTask` (lihat bagian Konvensi produksi) di transaksi yang sama.
+
+## Konvensi produksi (`/admin/production`)
+
+- Unit kerja = **item pesanan**, bukan pesanan. `ProductionTask` punya `orderItemId @unique`; satu task per `OrderItem`.
+- `scheduledAt` pada task **disalin** dari `Order.scheduledAt` (tanggal ambil/kirim) dan disinkronkan di dalam transaksi `saveOrder`. Jangan bikin field tanggal baru di form produksi.
+- Kalender hanya menampilkan pesanan aktif (`BARU`, `DIPROSES`). `SELESAI`/`DIBATALKAN` otomatis hilang dari kalender tanpa menghapus task (riwayat tetap ada).
+- Tahap: `ANTRI → DISIAPKAN → DIPRODUKSI → DIKEMAS → SIAP`. Ubah tahap hanya lewat `moveProductionStage` / `setProductionStage` di `app/admin/(panel)/production/actions.ts`; `startedAt` diisi saat keluar dari ANTRI, `completedAt` saat SIAP.
+- **Item pesanan tidak boleh dihapus-recreate** saat edit: `saveOrder` mencocokkan item lama lewat `variantId`/`productId` (fallback `productName::variantName`) agar task & progres tahap tidak hilang. Menghapus item dari form akan menghapus task lewat `onDelete: Cascade`.
+- Tipe & helper tanggal/slot kalender ada di `lib/production-types.ts` (client-safe), query `server-only` di `lib/production.ts`. Semua perhitungan tanggal memakai WIB.
+- Halaman: `app/admin/(panel)/production/page.tsx` dengan `searchParams` `month=YYYY-MM` dan `date=YYYY-MM-DD`; grid di `ProductionCalendar`, panel hari + stepper di `components/admin/production/`.
 
 ## Auth & routing
 

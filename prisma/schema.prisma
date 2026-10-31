@@ -98,16 +98,46 @@ model Order {
   updatedAt      DateTime    @updatedAt
 
   items OrderItem[]
+  productionTasks ProductionTask[]
 
   @@index([status, createdAt])
   @@index([source])
   @@map("orders")
 }
 
+model ProductionTask {
+  id              String          @id @default(cuid())
+  orderId         String
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItemId     String          @unique
+  orderItem       OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  // Tanggal kerja (disalin dari order scheduledAt).
+  scheduledAt     DateTime        @db.Date
+  stage           ProductionStage @default(ANTRI)
+  note            String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([scheduledAt, stage])
+  @@map("production_tasks")
+}
+
+enum ProductionStage {
+  ANTRI
+  DISIAPKAN
+  DIPRODUKSI
+  DIKEMAS
+  SIAP
+}
+
 model OrderItem {
-  id      String @id @default(cuid())
-  orderId String
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id              String          @id @default(cuid())
+  orderId         String
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productionTask ProductionTask?
 
   // Relasi opsional: varian/produk boleh dihapus tanpa menghapus riwayat pesanan.
   variantId String?
