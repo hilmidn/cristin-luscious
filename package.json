@@ -22,7 +22,7 @@
     "aos": "^2.3.4",
     "bcryptjs": "^3.0.3",
     "lucide-react": "^1.16.0",
-    "next": "16.2.6",
+    "next": "^16.4.3",
     "next-auth": "^4.24.15",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -36,7 +36,7 @@
     "@types/react-dom": "^19",
     "dotenv": "^18.0.9",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "^16.4.3",
     "prisma": "^7.10.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
@@ -49,5 +49,8 @@
     "prisma@7.10.1": true,
     "sharp@0.34.5": true,
     "unrs-resolver@1.12.2": true
+  },
+  "overrides": {
+    "effect": "3.20.0"
   }
 }
