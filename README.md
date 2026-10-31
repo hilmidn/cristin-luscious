@@ -60,6 +60,7 @@ npm run db:seed
 app/(site)              Website publik
 app/admin/login         Halaman login admin
 app/admin/(panel)       Dashboard admin (butuh login)
+app/admin/(panel)/orders    Pesanan & invoice (CRUD, ongkir, kode CL-YYMMDD-NNN)
 app/api/auth/[...nextauth]  NextAuth handler
 proxy.ts                Proteksi /admin/*
 ```

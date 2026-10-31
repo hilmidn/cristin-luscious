@@ -19,6 +19,18 @@ model AdminUser {
   @@map("admin_users")
 }
 
+enum ServiceType {
+  PICKUP
+  ANTAR
+}
+
+enum OrderStatus {
+  BARU
+  DIPROSES
+  SELESAI
+  DIBATALKAN
+}
+
 model Product {
   id          String   @id @default(cuid())
   slug        String   @unique
@@ -33,7 +45,8 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  variants ProductVariant[]
+  variants   ProductVariant[]
+  orderItems OrderItem[]
 
   @@index([published, sortOrder])
   @@map("products")
@@ -55,7 +68,63 @@ model ProductVariant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  orderItems OrderItem[]
+
   @@unique([productId, slug])
   @@index([productId, published, sortOrder])
   @@map("product_variants")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  code           String      @unique
+  customerName   String
+  phone          String
+  address        String
+  serviceType    ServiceType @default(PICKUP)
+  // Wajib diisi saat serviceType = ANTAR (divalidasi di orders/actions.ts).
+  deliveryPoint  String?
+  deliveryMapUrl String?
+  // Bebas, tanpa tabel master: pilihan dibangun dari data pesanan lama.
+  source         String?
+  note           String?
+  shippingCost   Int         @default(0)
+  subtotal       Int         @default(0)
+  total          Int         @default(0)
+  status         OrderStatus @default(BARU)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@index([status, createdAt])
+  @@index([source])
+  @@map("orders")
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Relasi opsional: varian/produk boleh dihapus tanpa menghapus riwayat pesanan.
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  productId String?
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // Snapshot saat pesanan dibuat: nama & harga di katalog bisa berubah.
+  productName String
+  variantName String
+  unitPrice   Int?
+  priceUnit   String?
+  quantity    Int
+  lineTotal   Int      @default(0)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([orderId, sortOrder])
+  @@index([variantId])
+  @@index([productId])
+  @@map("order_items")
 }

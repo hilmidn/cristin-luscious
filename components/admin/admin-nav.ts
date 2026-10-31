@@ -41,7 +41,6 @@ export const adminNav: AdminNavGroup[] = [
         label: "Pesanan",
         href: "/admin/orders",
         icon: ShoppingBag,
-        soon: true,
       },
     ],
   },

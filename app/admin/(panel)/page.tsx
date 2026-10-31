@@ -81,11 +81,12 @@ export default async function AdminDashboardPage() {
           />
           <div>
             <p className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-brand-dark">
-              Modul produk sudah aktif
+              Modul produk &amp; pesanan sudah aktif
             </p>
             <p className="mt-2 max-w-xl font-sans text-[11px] font-light leading-relaxed text-brand-text">
-              Tambah koleksi, atur varian, unggah gambar, dan atur urutan tampil
-              dari satu tempat. Modul Pesanan dan Pengaturan menyusul.
+              Tambah koleksi, atur varian, unggah gambar, dan catat pesanan
+              masuk beserta ongkir dan invoice dari satu tempat. Modul
+              Pengaturan menyusul.
             </p>
           </div>
         </div>
