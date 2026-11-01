@@ -67,7 +67,7 @@ export default function OrderTable({
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[1060px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-brand-border bg-brand-card">
