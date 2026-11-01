@@ -33,8 +33,8 @@ function revalidateProduction() {
 }
 
 /**
- * Ubah tahap satu grup varian sekaligus. Semua item di grup (produk + varian
- * pada tanggal produksi yang sama) selalu memakai tahap yang sama.
+ * Ubah tahap satu grup produk sekaligus. Semua varian produk pada tanggal
+ * produksi yang sama selalu memakai tahap yang sama.
  *
  * `startedAt` diisi saat grup pertama kali keluar dari antrian, `completedAt`
  * saat mencapai SIAP (dikosongkan lagi bila mundur).
@@ -44,7 +44,7 @@ function revalidateProduction() {
  * - keluar dari ANTRI -> `BARU` menjadi `DIPROSES`
  * - produksi dibuka lagi saat status `SELESAI_PRODUKSI` -> kembali `DIPROSES`
  */
-export async function setProductionGroupStage(
+export async function setProductionProductStage(
   taskIds: string[],
   stage: ProductionStage,
 ): Promise<ProductionActionResult> {
@@ -175,7 +175,7 @@ export async function setProductionGroupStage(
 
     return { ok: true };
   } catch (error) {
-    console.error("setProductionGroupStage", error);
+    console.error("setProductionProductStage", error);
 
     return { ok: false, error: "Gagal mengubah tahap produksi." };
   }

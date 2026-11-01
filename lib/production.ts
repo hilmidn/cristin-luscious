@@ -3,7 +3,7 @@ import "server-only";
 import { getPrisma } from "./prisma";
 import { jakartaDateKey, type OrderStatus } from "./order-types";
 import {
-  productionGroupKey,
+  productionProductKey,
   stageIndex,
   todayKey,
   type ProductionDay,
@@ -51,7 +51,12 @@ export async function getProductionMonth(
       stage: true,
       orderId: true,
       orderItem: {
-        select: { productName: true, variantName: true, quantity: true },
+        select: {
+          productId: true,
+          productName: true,
+          variantName: true,
+          quantity: true,
+        },
       },
     },
   });
@@ -80,16 +85,12 @@ export async function getProductionMonth(
     bucket.orders.add(task.orderId);
     bucket.itemCount += 1;
 
-    // Highlight sel kalender memakai produk + varian agar sama dengan grup
-    // di panel hari.
-    const productKey = productionGroupKey(
+    const productKey = productionProductKey(
+      task.orderItem.productId,
       task.orderItem.productName,
-      task.orderItem.variantName,
     );
     const product = bucket.products.get(productKey) ?? {
-      name: task.orderItem.variantName
-        ? `${task.orderItem.productName} — ${task.orderItem.variantName}`
-        : task.orderItem.productName,
+      name: task.orderItem.productName,
       quantity: 0,
     };
 
@@ -134,6 +135,7 @@ export async function getProductionDay(dateKey: string): Promise<ProductionDay> 
       orderItem: {
         select: {
           productName: true,
+          productId: true,
           variantName: true,
           quantity: true,
         },
@@ -144,14 +146,19 @@ export async function getProductionDay(dateKey: string): Promise<ProductionDay> 
 
   const groups = new Map<
     string,
-    { group: ProductionGroup; orderIds: Set<string> }
+    {
+      group: ProductionGroup;
+      orderIds: Set<string>;
+      variants: Map<string, ProductionGroup["variants"][number]>;
+    }
   >();
   const orderIds = new Set<string>();
 
   for (const task of tasks) {
     const { productName, variantName, quantity } = task.orderItem;
-    const key = productionGroupKey(productName, variantName);
+    const key = productionProductKey(task.orderItem.productId, productName);
     const existing = groups.get(key);
+    const variantKey = variantName ?? "";
 
     orderIds.add(task.orderId);
 
@@ -159,6 +166,17 @@ export async function getProductionDay(dateKey: string): Promise<ProductionDay> 
       existing.group.quantity += quantity;
       existing.group.taskIds.push(task.id);
       existing.orderIds.add(task.orderId);
+
+      const variant = existing.variants.get(variantKey);
+      if (variant) {
+        variant.quantity += quantity;
+      } else {
+        existing.variants.set(variantKey, {
+          key: variantKey,
+          variantName,
+          quantity,
+        });
+      }
 
       // Tahap grup mengikuti item yang paling awal supaya grup tidak
       // terlihat selesai padahal masih ada yang tertinggal.
@@ -169,28 +187,33 @@ export async function getProductionDay(dateKey: string): Promise<ProductionDay> 
       continue;
     }
 
+    const variant = { key: variantKey, variantName, quantity };
+    const variants = new Map([[variantKey, variant]]);
     groups.set(key, {
       group: {
         key,
         productName,
-        variantName,
+        variants: [variant],
         quantity,
         orderCount: 1,
         taskIds: [task.id],
         stage: task.stage,
       },
       orderIds: new Set([task.orderId]),
+      variants,
     });
   }
 
-  const list = Array.from(groups.values(), ({ group, orderIds: ids }) => ({
-    ...group,
-    orderCount: ids.size,
-  })).sort(
-    (a, b) =>
-      a.productName.localeCompare(b.productName) ||
-      (a.variantName ?? "").localeCompare(b.variantName ?? ""),
-  );
+  const list = Array.from(
+    groups.values(),
+    ({ group, orderIds: ids, variants }) => ({
+      ...group,
+      variants: Array.from(variants.values()).sort((a, b) =>
+        (a.variantName ?? "").localeCompare(b.variantName ?? ""),
+      ),
+      orderCount: ids.size,
+    }),
+  ).sort((a, b) => a.productName.localeCompare(b.productName));
 
   return {
     dateKey,

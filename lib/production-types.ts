@@ -46,25 +46,29 @@ export function previousStage(stage: ProductionStage): ProductionStage | null {
   return index >= 0 ? PRODUCTION_STAGES[index] : null;
 }
 
-/** Kunci grup kerja dapur: satu produk + satu varian. */
-export function productionGroupKey(
+/** Kunci grup kerja dapur: satu produk pada satu tanggal produksi. */
+export function productionProductKey(
+  productId: string | null,
   productName: string,
-  variantName: string | null,
 ): string {
-  return `${productName}::${variantName ?? ""}`;
+  return productId ? `product:${productId}` : `name:${productName}`;
 }
 
 /**
- * Satu baris kerja dapur = satu varian dalam satu tanggal produksi.
- * Semua item pesanan di dalamnya memakai tahap yang sama.
+ * Satu grup kerja dapur = satu produk dalam satu tanggal produksi.
+ * Daftar varian merangkum quantity; semua task produk memakai tahap yang sama.
  */
 export type ProductionGroup = {
   key: string;
   productName: string;
-  variantName: string | null;
+  variants: {
+    key: string;
+    variantName: string | null;
+    quantity: number;
+  }[];
   /** Total quantity seluruh item di grup. */
   quantity: number;
-  /** Jumlah pesanan berbeda yang memesan varian ini. */
+  /** Jumlah pesanan berbeda yang memesan produk ini. */
   orderCount: number;
   /** Semua task yang ikut berubah saat tahap grup diubah. */
   taskIds: string[];

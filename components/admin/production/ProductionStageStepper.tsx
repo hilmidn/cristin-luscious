@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { setProductionGroupStage } from "@/app/admin/(panel)/production/actions";
+import { setProductionProductStage } from "@/app/admin/(panel)/production/actions";
 import {
   nextStage,
   previousStage,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/production-types";
 
 type ProductionStageStepperProps = {
-  /** Semua task dalam satu grup varian; tahapnya berubah bersamaan. */
+  /** Semua task dari seluruh varian satu produk pada tanggal yang sama. */
   taskIds: string[];
   stage: ProductionStage;
 };
@@ -35,7 +35,7 @@ export default function ProductionStageStepper({
     }
 
     startTransition(async () => {
-      const result = await setProductionGroupStage(taskIds, target);
+      const result = await setProductionProductStage(taskIds, target);
 
       if (!result.ok) {
         window.alert(result.error);
