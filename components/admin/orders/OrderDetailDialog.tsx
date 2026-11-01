@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, Download, Loader2, X } from "lucide-react";
+import OrderReceipt from "./OrderReceipt";
 import { formatPrice } from "@/lib/catalog-types";
 import {
   ORDER_STATUS_LABELS,
@@ -34,6 +35,8 @@ const valueClass =
 
 export default function OrderDetailDialog({ order }: OrderDetailDialogProps) {
   const [open, setOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -58,6 +61,42 @@ export default function OrderDetailDialog({ order }: OrderDetailDialogProps) {
     (total, item) => total + item.quantity,
     0,
   );
+
+  async function handleDownloadReceipt() {
+    const node = receiptRef.current;
+
+    if (!node || isDownloading) return;
+
+    setIsDownloading(true);
+
+    try {
+      await document.fonts.ready;
+      await Promise.all(
+        Array.from(node.querySelectorAll("img")).map((image) =>
+          image.decode(),
+        ),
+      );
+
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(node, {
+        width: 640,
+        pixelRatio: 2,
+        backgroundColor: "#fffcf7",
+        cacheBust: true,
+        style: { opacity: "1" },
+      });
+
+      const link = document.createElement("a");
+      link.download = `${order.code}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("handleDownloadReceipt", error);
+      window.alert("Gagal membuat gambar nota. Silakan coba lagi.");
+    } finally {
+      setIsDownloading(false);
+    }
+  }
 
   return (
     <>
@@ -84,6 +123,14 @@ export default function OrderDetailDialog({ order }: OrderDetailDialogProps) {
               onClick={(event) => event.stopPropagation()}
               className="w-full max-w-2xl border border-brand-border bg-brand-bg"
             >
+              <div
+                ref={receiptRef}
+                aria-hidden="true"
+                className="pointer-events-none fixed left-0 top-0 -z-10 w-[640px] opacity-0"
+              >
+                <OrderReceipt order={order} />
+              </div>
+
               {/* Header */}
               <div className="flex items-start justify-between gap-4 border-b border-brand-border px-5 py-4 sm:px-6">
                 <div>
@@ -248,6 +295,20 @@ export default function OrderDetailDialog({ order }: OrderDetailDialogProps) {
                   className="inline-flex items-center justify-center border border-brand-border bg-brand-card px-5 py-3 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark"
                 >
                   Tutup
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadReceipt()}
+                  disabled={isDownloading}
+                  className="inline-flex items-center justify-center gap-2 border border-brand-border bg-brand-card px-5 py-3 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-dark transition-colors hover:border-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isDownloading ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Download size={12} />
+                  )}
+                  {isDownloading ? "Menyiapkan..." : "Unduh Nota"}
                 </button>
 
                 <Link
