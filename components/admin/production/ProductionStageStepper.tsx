@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { moveProductionStage } from "@/app/admin/(panel)/production/actions";
+import { setProductionGroupStage } from "@/app/admin/(panel)/production/actions";
 import {
   nextStage,
   previousStage,
@@ -13,21 +13,29 @@ import {
 } from "@/lib/production-types";
 
 type ProductionStageStepperProps = {
-  taskId: string;
+  /** Semua task dalam satu grup varian; tahapnya berubah bersamaan. */
+  taskIds: string[];
   stage: ProductionStage;
 };
 
 export default function ProductionStageStepper({
-  taskId,
+  taskIds,
   stage,
 }: ProductionStageStepperProps) {
   const [isPending, startTransition] = useTransition();
   const current = stageIndex(stage);
   const next = nextStage(stage);
+  const previous = previousStage(stage);
 
   function move(direction: "next" | "prev") {
+    const target = direction === "next" ? next : previous;
+
+    if (!target) {
+      return;
+    }
+
     startTransition(async () => {
-      const result = await moveProductionStage(taskId, direction);
+      const result = await setProductionGroupStage(taskIds, target);
 
       if (!result.ok) {
         window.alert(result.error);
@@ -52,7 +60,7 @@ export default function ProductionStageStepper({
         <button
           type="button"
           onClick={() => move("prev")}
-          disabled={isPending || !previousStage(stage)}
+          disabled={isPending || !previous}
           aria-label="Kembali ke tahap sebelumnya"
           className="flex w-8 shrink-0 items-center justify-center border border-brand-border bg-brand-bg text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
         >

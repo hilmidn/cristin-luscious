@@ -1,75 +1,19 @@
 import "server-only";
 
 import { getPrisma } from "./prisma";
-import { jakartaDateKey, type OrderStatus, type ServiceType } from "./order-types";
+import { jakartaDateKey, type OrderStatus } from "./order-types";
 import {
+  productionGroupKey,
+  stageIndex,
   todayKey,
   type ProductionDay,
-  type ProductionDayOrder,
   type ProductionDaySummary,
-  type ProductionItem,
+  type ProductionGroup,
   type ProductionMonth,
-  type ProductionStage,
 } from "./production-types";
 
 /** Hanya pesanan aktif yang masuk kalender produksi. */
 const ACTIVE_STATUSES: OrderStatus[] = ["BARU", "DIPROSES"];
-
-const productionTaskInclude = {
-  order: {
-    select: {
-      id: true,
-      code: true,
-      customerName: true,
-      phone: true,
-      serviceType: true,
-    },
-  },
-  orderItem: {
-    select: {
-      id: true,
-      productName: true,
-      variantName: true,
-      quantity: true,
-    },
-  },
-} as const;
-
-type TaskRow = {
-  id: string;
-  stage: ProductionStage;
-  note: string | null;
-  order: {
-    id: string;
-    code: string;
-    customerName: string;
-    phone: string;
-    serviceType: string;
-  };
-  orderItem: {
-    id: string;
-    productName: string;
-    variantName: string;
-    quantity: number;
-  };
-};
-
-function toProductionItem(task: TaskRow): ProductionItem {
-  return {
-    taskId: task.id,
-    orderItemId: task.orderItem.id,
-    orderId: task.order.id,
-    orderCode: task.order.code,
-    customerName: task.order.customerName,
-    phone: task.order.phone,
-    serviceType: task.order.serviceType as ServiceType,
-    productName: task.orderItem.productName,
-    variantName: task.orderItem.variantName,
-    quantity: task.orderItem.quantity,
-    stage: task.stage,
-    note: task.note,
-  };
-}
 
 /** Batas tanggal DATE (UTC midnight) untuk satu hari. */
 function dayRange(dateKey: string) {
@@ -106,7 +50,9 @@ export async function getProductionMonth(
       scheduledAt: true,
       stage: true,
       orderId: true,
-      orderItem: { select: { productName: true, quantity: true } },
+      orderItem: {
+        select: { productName: true, variantName: true, quantity: true },
+      },
     },
   });
 
@@ -115,7 +61,7 @@ export async function getProductionMonth(
     {
       orders: Set<string>;
       itemCount: number;
-      products: Map<string, number>;
+      products: Map<string, { name: string; quantity: number }>;
       allReady: boolean;
     }
   >();
@@ -127,17 +73,28 @@ export async function getProductionMonth(
       {
         orders: new Set<string>(),
         itemCount: 0,
-        products: new Map<string, number>(),
+        products: new Map<string, { name: string; quantity: number }>(),
         allReady: true,
       };
 
     bucket.orders.add(task.orderId);
     bucket.itemCount += 1;
-    bucket.products.set(
+
+    // Highlight sel kalender memakai produk + varian agar sama dengan grup
+    // di panel hari.
+    const productKey = productionGroupKey(
       task.orderItem.productName,
-      (bucket.products.get(task.orderItem.productName) ?? 0) +
-        task.orderItem.quantity,
+      task.orderItem.variantName,
     );
+    const product = bucket.products.get(productKey) ?? {
+      name: task.orderItem.variantName
+        ? `${task.orderItem.productName} — ${task.orderItem.variantName}`
+        : task.orderItem.productName,
+      quantity: 0,
+    };
+
+    product.quantity += task.orderItem.quantity;
+    bucket.products.set(productKey, product);
 
     if (task.stage !== "SIAP") {
       bucket.allReady = false;
@@ -152,10 +109,7 @@ export async function getProductionMonth(
     days[dateKey] = {
       orderCount: bucket.orders.size,
       itemCount: bucket.itemCount,
-      highlights: Array.from(bucket.products, ([name, quantity]) => ({
-        name,
-        quantity,
-      }))
+      highlights: Array.from(bucket.products.values())
         .sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name))
         .slice(0, 2),
       allReady: bucket.allReady,
@@ -173,40 +127,76 @@ export async function getProductionDay(dateKey: string): Promise<ProductionDay> 
       scheduledAt: { gte: start, lt: end },
       order: { status: { in: ACTIVE_STATUSES } },
     },
-    include: productionTaskInclude,
-    orderBy: [
-      { order: { code: "asc" } },
-      { orderItem: { sortOrder: "asc" } },
-      { createdAt: "asc" },
-    ],
+    select: {
+      id: true,
+      stage: true,
+      orderId: true,
+      orderItem: {
+        select: {
+          productName: true,
+          variantName: true,
+          quantity: true,
+        },
+      },
+    },
+    orderBy: [{ orderItem: { sortOrder: "asc" } }, { createdAt: "asc" }],
   });
 
-  const groups = new Map<string, ProductionDayOrder>();
+  const groups = new Map<
+    string,
+    { group: ProductionGroup; orderIds: Set<string> }
+  >();
+  const orderIds = new Set<string>();
 
   for (const task of tasks) {
-    const item = toProductionItem(task);
-    const group =
-      groups.get(item.orderId) ??
-      ({
-        orderId: item.orderId,
-        code: item.orderCode,
-        customerName: item.customerName,
-        phone: item.phone,
-        serviceType: item.serviceType,
-        items: [],
-      } satisfies ProductionDayOrder);
+    const { productName, variantName, quantity } = task.orderItem;
+    const key = productionGroupKey(productName, variantName);
+    const existing = groups.get(key);
 
-    group.items.push(item);
-    groups.set(item.orderId, group);
+    orderIds.add(task.orderId);
+
+    if (existing) {
+      existing.group.quantity += quantity;
+      existing.group.taskIds.push(task.id);
+      existing.orderIds.add(task.orderId);
+
+      // Tahap grup mengikuti item yang paling awal supaya grup tidak
+      // terlihat selesai padahal masih ada yang tertinggal.
+      if (stageIndex(task.stage) < stageIndex(existing.group.stage)) {
+        existing.group.stage = task.stage;
+      }
+
+      continue;
+    }
+
+    groups.set(key, {
+      group: {
+        key,
+        productName,
+        variantName,
+        quantity,
+        orderCount: 1,
+        taskIds: [task.id],
+        stage: task.stage,
+      },
+      orderIds: new Set([task.orderId]),
+    });
   }
 
-  const orders = Array.from(groups.values());
+  const list = Array.from(groups.values(), ({ group, orderIds: ids }) => ({
+    ...group,
+    orderCount: ids.size,
+  })).sort(
+    (a, b) =>
+      a.productName.localeCompare(b.productName) ||
+      (a.variantName ?? "").localeCompare(b.variantName ?? ""),
+  );
 
   return {
     dateKey,
-    orders,
-    orderCount: orders.length,
-    itemCount: orders.reduce((sum, order) => sum + order.items.length, 0),
+    groups: list,
+    orderCount: orderIds.size,
+    itemCount: tasks.length,
   };
 }
 

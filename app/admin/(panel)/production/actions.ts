@@ -5,8 +5,6 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import {
-  nextStage,
-  previousStage,
   PRODUCTION_STAGES,
   type ProductionStage,
 } from "@/lib/production-types";
@@ -29,88 +27,78 @@ function revalidateProduction() {
 }
 
 /**
- * Simpan tahap baru. `startedAt` diisi saat item pertama kali keluar dari
- * antrian, `completedAt` saat mencapai SIAP (dikosongkan lagi bila mundur).
+ * Ubah tahap satu grup varian sekaligus. Semua item di grup (produk + varian
+ * pada tanggal produksi yang sama) selalu memakai tahap yang sama.
+ *
+ * `startedAt` diisi saat grup pertama kali keluar dari antrian, `completedAt`
+ * saat mencapai SIAP (dikosongkan lagi bila mundur).
  */
-async function applyStage(taskId: string, stage: ProductionStage) {
-  await requireAdmin();
-
-  const task = await getPrisma().productionTask.findUnique({
-    where: { id: taskId },
-    select: { id: true, stage: true, startedAt: true },
-  });
-
-  if (!task) {
-    return { ok: false as const, error: "Item produksi tidak ditemukan." };
-  }
-
-  const now = new Date();
-
-  await getPrisma().productionTask.update({
-    where: { id: taskId },
-    data: {
-      stage,
-      startedAt:
-        stage === "ANTRI" ? null : (task.startedAt ?? now),
-      completedAt: stage === "SIAP" ? now : null,
-    },
-    select: { id: true },
-  });
-
-  revalidateProduction();
-
-  return { ok: true as const };
-}
-
-export async function setProductionStage(
-  taskId: string,
+export async function setProductionGroupStage(
+  taskIds: string[],
   stage: ProductionStage,
-): Promise<ProductionActionResult> {
-  try {
-    if (!PRODUCTION_STAGES.includes(stage)) {
-      return { ok: false, error: "Tahap produksi tidak valid." };
-    }
-
-    return await applyStage(taskId, stage);
-  } catch (error) {
-    console.error("setProductionStage", error);
-
-    return { ok: false, error: "Gagal mengubah tahap produksi." };
-  }
-}
-
-/** Tombol "Lanjut" / "Kembali" di panel hari. */
-export async function moveProductionStage(
-  taskId: string,
-  direction: "next" | "prev",
 ): Promise<ProductionActionResult> {
   try {
     await requireAdmin();
 
-    const task = await getPrisma().productionTask.findUnique({
-      where: { id: taskId },
-      select: { stage: true },
-    });
-
-    if (!task) {
-      return { ok: false, error: "Item produksi tidak ditemukan." };
+    if (!PRODUCTION_STAGES.includes(stage)) {
+      return { ok: false, error: "Tahap produksi tidak valid." };
     }
 
-    const target =
-      direction === "next"
-        ? nextStage(task.stage)
-        : previousStage(task.stage);
+    if (!Array.isArray(taskIds)) {
+      return { ok: false, error: "Grup produksi tidak valid." };
+    }
 
-    if (!target) {
+    const ids = Array.from(
+      new Set(
+        taskIds.filter(
+          (id): id is string => typeof id === "string" && id.length > 0,
+        ),
+      ),
+    );
+
+    if (ids.length === 0) {
+      return { ok: false, error: "Grup produksi tidak memiliki item." };
+    }
+
+    const prisma = getPrisma();
+    const existing = await prisma.productionTask.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    });
+
+    if (existing.length !== ids.length) {
       return {
         ok: false,
-        error: "Tahap sudah di batas awal / akhir.",
+        error: "Sebagian item produksi sudah tidak tersedia. Muat ulang halaman.",
       };
     }
 
-    return await applyStage(taskId, target);
+    const now = new Date();
+    const completedAt = stage === "SIAP" ? now : null;
+
+    if (stage === "ANTRI") {
+      await prisma.productionTask.updateMany({
+        where: { id: { in: ids } },
+        data: { stage, startedAt: null, completedAt },
+      });
+    } else {
+      await prisma.$transaction([
+        prisma.productionTask.updateMany({
+          where: { id: { in: ids }, startedAt: null },
+          data: { startedAt: now },
+        }),
+        prisma.productionTask.updateMany({
+          where: { id: { in: ids } },
+          data: { stage, completedAt },
+        }),
+      ]);
+    }
+
+    revalidateProduction();
+
+    return { ok: true };
   } catch (error) {
-    console.error("moveProductionStage", error);
+    console.error("setProductionGroupStage", error);
 
     return { ok: false, error: "Gagal mengubah tahap produksi." };
   }

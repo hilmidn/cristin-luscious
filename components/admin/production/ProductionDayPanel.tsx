@@ -1,19 +1,9 @@
-import Link from "next/link";
-import { ArrowUpRight, MapPin, MessageCircle, Truck } from "lucide-react";
 import ProductionStageStepper from "./ProductionStageStepper";
-import { SERVICE_LABELS } from "@/lib/order-types";
 import { formatDayLabel, type ProductionDay } from "@/lib/production-types";
 
 type ProductionDayPanelProps = {
   day: ProductionDay;
 };
-
-/** Nomor HP 08xx -> 628xx untuk tautan WhatsApp. */
-function whatsappHref(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-
-  return `https://wa.me/${digits.startsWith("0") ? `62${digits.slice(1)}` : digits}`;
-}
 
 export default function ProductionDayPanel({ day }: ProductionDayPanelProps) {
   return (
@@ -29,91 +19,50 @@ export default function ProductionDayPanel({ day }: ProductionDayPanelProps) {
         </div>
 
         <span className="font-mono text-[9px] text-brand-muted">
-          {String(day.orderCount).padStart(2, "0")} pesanan ·{" "}
+          {String(day.groups.length).padStart(2, "0")} varian ·{" "}
           {String(day.itemCount).padStart(2, "0")} item
         </span>
       </div>
 
-      {day.orders.length === 0 ? (
+      {day.groups.length === 0 ? (
         <div className="px-6 py-14 text-center">
           <p className="font-playfair text-lg font-bold text-brand-dark">
             Tidak ada produksi
           </p>
           <p className="mx-auto mt-2 max-w-sm font-sans text-[11px] leading-relaxed text-brand-text">
-            Belum ada pesanan aktif dengan tanggal ambil / kirim di hari ini.
-            Pilih tanggal lain di kalender.
+            Belum ada varian yang dijadwalkan untuk tanggal ini. Pilih tanggal
+            lain di kalender.
           </p>
         </div>
       ) : (
         <div className="divide-y divide-brand-border">
-          {day.orders.map((order) => (
-            <article key={order.orderId} className="px-5 py-4">
-              <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
+          {day.groups.map((group) => (
+            <article key={group.key} className="px-5 py-4">
+              <header className="mb-3 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[10px] font-bold tracking-wide text-brand-dark">
-                      {order.code}
-                    </span>
-                    <span className="inline-flex items-center gap-1 border border-brand-border bg-brand-card px-1.5 py-0.5 font-sans text-[7px] font-bold uppercase tracking-[0.14em] text-brand-text">
-                      {order.serviceType === "ANTAR" ? (
-                        <Truck size={9} />
-                      ) : (
-                        <MapPin size={9} />
-                      )}
-                      {SERVICE_LABELS[order.serviceType]}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate font-sans text-[11px] text-brand-dark">
-                    {order.customerName}
+                  <p className="font-sans text-[11px] font-semibold leading-snug text-brand-dark">
+                    {group.productName}
+                    {group.variantName && (
+                      <span className="font-normal text-brand-text">
+                        {" — "}
+                        {group.variantName}
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.14em] text-brand-text">
+                    {group.orderCount} pesanan
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <a
-                    href={whatsappHref(order.phone)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 border border-brand-border bg-brand-card px-2 py-1.5 font-sans text-[8px] font-bold uppercase tracking-[0.14em] text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark"
-                  >
-                    <MessageCircle size={10} />
-                    {order.phone}
-                  </a>
-                  <Link
-                    href={`/admin/orders/${order.orderId}`}
-                    className="inline-flex items-center gap-1 border border-brand-border bg-brand-bg px-2 py-1.5 font-sans text-[8px] font-bold uppercase tracking-[0.14em] text-brand-dark transition-colors hover:border-brand-dark"
-                  >
-                    Pesanan
-                    <ArrowUpRight size={10} />
-                  </Link>
-                </div>
+                <span className="shrink-0 font-mono text-[13px] font-bold text-brand-dark">
+                  ×{group.quantity}
+                </span>
               </header>
 
-              <ul className="space-y-1">
-                {order.items.map((item) => (
-                  <li
-                    key={item.taskId}
-                    className="flex flex-col gap-2 border border-brand-border/70 bg-brand-card/40 px-3 py-2.5"
-                  >
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                      <p className="font-sans text-[11px] font-semibold leading-snug text-brand-dark">
-                        {item.productName}
-                        <span className="font-normal text-brand-text">
-                          {" — "}
-                          {item.variantName}
-                        </span>
-                      </p>
-                      <span className="shrink-0 font-mono text-[10px] font-bold text-brand-dark">
-                        ×{item.quantity}
-                      </span>
-                    </div>
-
-                    <ProductionStageStepper
-                      taskId={item.taskId}
-                      stage={item.stage}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <ProductionStageStepper
+                taskIds={group.taskIds}
+                stage={group.stage}
+              />
             </article>
           ))}
         </div>

@@ -55,10 +55,11 @@ Website Cristin Luscious (cookies & dessert premium) + area admin privat di `/ad
 
 ## Konvensi produksi (`/admin/production`)
 
-- Unit kerja = **item pesanan**, bukan pesanan. `ProductionTask` punya `orderItemId @unique`; satu task per `OrderItem`.
+- Di DB, unit kerja = **item pesanan**. `ProductionTask` punya `orderItemId @unique`; satu task per `OrderItem`.
+- Di UI kalender, item **dikelompokkan per produk + varian dalam satu tanggal** (`ProductionGroup` di `lib/production-types.ts`). Panel hari tidak menampilkan invoice/pemesan; satu kartu = satu varian dengan total quantity dan jumlah pesanan.
 - `scheduledAt` pada task **disalin** dari `Order.scheduledAt` (tanggal ambil/kirim) dan disinkronkan di dalam transaksi `saveOrder`. Jangan bikin field tanggal baru di form produksi.
 - Kalender hanya menampilkan pesanan aktif (`BARU`, `DIPROSES`). `SELESAI`/`DIBATALKAN` otomatis hilang dari kalender tanpa menghapus task (riwayat tetap ada).
-- Tahap: `ANTRI → DISIAPKAN → DIPRODUKSI → DIKEMAS → SIAP`. Ubah tahap hanya lewat `moveProductionStage` / `setProductionStage` di `app/admin/(panel)/production/actions.ts`; `startedAt` diisi saat keluar dari ANTRI, `completedAt` saat SIAP.
+- Tahap: `ANTRI → DISIAPKAN → DIPRODUKSI → DIKEMAS → SIAP`. Satu grup varian memakai **satu tahap**; ubah tahap hanya lewat `setProductionGroupStage(taskIds, stage)` di `app/admin/(panel)/production/actions.ts` yang meng-update seluruh task grup sekaligus. Tahap grup ditampilkan dari task paling awal (agar tidak terlihat selesai sebelum semua selesai). `startedAt` diisi saat keluar dari ANTRI, `completedAt` saat SIAP.
 - **Item pesanan tidak boleh dihapus-recreate** saat edit: `saveOrder` mencocokkan item lama lewat `variantId`/`productId` (fallback `productName::variantName`) agar task & progres tahap tidak hilang. Menghapus item dari form akan menghapus task lewat `onDelete: Cascade`.
 - Tipe & helper tanggal/slot kalender ada di `lib/production-types.ts` (client-safe), query `server-only` di `lib/production.ts`. Semua perhitungan tanggal memakai WIB.
 - Halaman: `app/admin/(panel)/production/page.tsx` dengan `searchParams` `month=YYYY-MM` dan `date=YYYY-MM-DD`; grid di `ProductionCalendar`, panel hari + stepper di `components/admin/production/`.

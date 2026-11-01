@@ -6,7 +6,6 @@
  */
 
 import { JAKARTA_TIME_ZONE, jakartaDateKey } from "./order-types";
-import type { ServiceType } from "./order-types";
 
 export type ProductionStage =
   | "ANTRI"
@@ -47,34 +46,34 @@ export function previousStage(stage: ProductionStage): ProductionStage | null {
   return index >= 0 ? PRODUCTION_STAGES[index] : null;
 }
 
-/** Satu baris kerja dapur: satu item pesanan. */
-export type ProductionItem = {
-  taskId: string;
-  orderItemId: string;
-  orderId: string;
-  orderCode: string;
-  customerName: string;
-  phone: string;
-  serviceType: ServiceType;
-  productName: string;
-  variantName: string;
-  quantity: number;
-  stage: ProductionStage;
-  note: string | null;
-};
+/** Kunci grup kerja dapur: satu produk + satu varian. */
+export function productionGroupKey(
+  productName: string,
+  variantName: string | null,
+): string {
+  return `${productName}::${variantName ?? ""}`;
+}
 
-export type ProductionDayOrder = {
-  orderId: string;
-  code: string;
-  customerName: string;
-  phone: string;
-  serviceType: ServiceType;
-  items: ProductionItem[];
+/**
+ * Satu baris kerja dapur = satu varian dalam satu tanggal produksi.
+ * Semua item pesanan di dalamnya memakai tahap yang sama.
+ */
+export type ProductionGroup = {
+  key: string;
+  productName: string;
+  variantName: string | null;
+  /** Total quantity seluruh item di grup. */
+  quantity: number;
+  /** Jumlah pesanan berbeda yang memesan varian ini. */
+  orderCount: number;
+  /** Semua task yang ikut berubah saat tahap grup diubah. */
+  taskIds: string[];
+  stage: ProductionStage;
 };
 
 export type ProductionDay = {
   dateKey: string;
-  orders: ProductionDayOrder[];
+  groups: ProductionGroup[];
   itemCount: number;
   orderCount: number;
 };
