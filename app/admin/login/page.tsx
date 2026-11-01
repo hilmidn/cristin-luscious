@@ -107,12 +107,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
             <LoginForm callbackUrl={callbackUrl} />
           </div>
 
-          <div className="mt-8 border-t border-brand-border pt-5">
-            <p className="font-sans text-[9px] uppercase leading-relaxed tracking-[0.18em] text-brand-muted">
-              Akses hanya untuk pengelola Cristin Luscious. Sesi login
-              diamankan dengan cookie httpOnly.
-            </p>
-          </div>
+          <div className="mt-8 border-t border-brand-border pt-5"></div>
         </div>
       </section>
     </main>
