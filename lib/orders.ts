@@ -6,10 +6,12 @@ import {
   jakartaMonthKey,
   monthKeyLabel,
   monthRangeFromKey,
+  normalizePhone,
   shiftMonthKeyValue,
 } from "./order-types";
 import type {
   AdminOrder,
+  OrderCustomerOption,
   OrderSourceOption,
   OrderStatus,
   OrderableProduct,
@@ -191,6 +193,46 @@ export async function getOrderSources(): Promise<OrderSourceOption[]> {
     }))
     .filter((row) => row.source.length > 0)
     .sort((a, b) => b.count - a.count || a.source.localeCompare(b.source));
+}
+
+/**
+ * Daftar pelanggan untuk autocomplete nama pemesan. Tanpa tabel master:
+ * identitas pelanggan memakai no. HP yang dinormalisasi, dan data yang dipakai
+ * adalah pesanan terbarunya (nama/alamat bisa berubah antar pesanan).
+ */
+export async function getOrderCustomers(): Promise<OrderCustomerOption[]> {
+  const rows = await getPrisma().order.findMany({
+    select: { customerName: true, phone: true, address: true },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+  });
+
+  const byCustomer = new Map<string, OrderCustomerOption>();
+
+  for (const row of rows) {
+    const name = row.customerName.trim();
+
+    if (!name) continue;
+
+    const key = normalizePhone(row.phone) || name.toLowerCase();
+    const existing = byCustomer.get(key);
+
+    if (existing) {
+      existing.orderCount += 1;
+      continue;
+    }
+
+    byCustomer.set(key, {
+      name,
+      phone: row.phone.trim(),
+      address: row.address.trim(),
+      orderCount: 1,
+    });
+  }
+
+  return [...byCustomer.values()].sort(
+    (a, b) => b.orderCount - a.orderCount || a.name.localeCompare(b.name),
+  );
 }
 
 export async function getOrderStats() {

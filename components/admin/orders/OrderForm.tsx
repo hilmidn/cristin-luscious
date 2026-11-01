@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,6 +12,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { saveOrder } from "@/app/admin/(panel)/orders/actions";
+import SelectField from "@/components/admin/SelectField";
+import SuggestionInput, { type SuggestionOption } from "./SuggestionInput";
 import { formatPrice } from "@/lib/catalog-types";
 import {
   ORDER_STATUSES,
@@ -23,6 +25,7 @@ import {
   formatRupiah,
   toDateInputValue,
   type AdminOrder,
+  type OrderCustomerOption,
   type OrderInput,
   type OrderSourceOption,
   type OrderStatus,
@@ -34,7 +37,10 @@ type OrderFormProps = {
   order?: AdminOrder;
   catalog: OrderableProduct[];
   sources: OrderSourceOption[];
+  customers: OrderCustomerOption[];
 };
+
+type CustomerSuggestion = SuggestionOption & { customer: OrderCustomerOption };
 
 type ItemDraft = {
   key: string;
@@ -140,7 +146,12 @@ function toDrafts(order?: AdminOrder): ItemDraft[] {
   }));
 }
 
-export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
+export default function OrderForm({
+  order,
+  catalog,
+  sources,
+  customers,
+}: OrderFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -167,6 +178,32 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
   );
   const [status, setStatus] = useState<OrderStatus>(order?.status ?? "BARU");
   const [items, setItems] = useState<ItemDraft[]>(() => toDrafts(order));
+
+  const sourceSuggestions = useMemo<SuggestionOption[]>(
+    () =>
+      sources.map((option) => ({
+        value: option.source,
+        meta: `${option.count} pesanan`,
+      })),
+    [sources],
+  );
+
+  const customerSuggestions = useMemo<CustomerSuggestion[]>(
+    () =>
+      customers.map((customer) => ({
+        value: customer.name,
+        meta: customer.phone,
+        customer,
+      })),
+    [customers],
+  );
+
+  /** Pelanggan lama dipilih: no. HP dan alamat ikut terisi otomatis. */
+  function handleCustomerPick(option: CustomerSuggestion) {
+    setCustomerName(option.customer.name);
+    setPhone(option.customer.phone);
+    setAddress(option.customer.address);
+  }
 
   // Kotak error ada di atas form; gulir ke atas setiap kali simpan gagal,
   // termasuk saat pesan error-nya sama dengan percobaan sebelumnya.
@@ -332,14 +369,19 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
                 <label htmlFor="customerName" className={labelClass}>
                   Nama Pemesan
                 </label>
-                <input
+                <SuggestionInput
                   id="customerName"
                   value={customerName}
-                  onChange={(event) => setCustomerName(event.target.value)}
+                  onChange={setCustomerName}
+                  suggestions={customerSuggestions}
+                  onPick={handleCustomerPick}
                   required
                   placeholder="Nama penerima"
-                  className={inputClass}
                 />
+                <p className="mt-1.5 font-sans text-[9px] text-brand-muted">
+                  Pilih nama pelanggan lama untuk mengisi no. HP dan alamat
+                  otomatis.
+                </p>
               </div>
 
               <div>
@@ -376,20 +418,20 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
                 <label htmlFor="serviceType" className={labelClass}>
                   Jenis Layanan
                 </label>
-                <select
+                <SelectField
                   id="serviceType"
                   value={serviceType}
                   onChange={(event) =>
                     handleServiceTypeChange(event.target.value as ServiceType)
                   }
-                  className={inputClass}
+                  className={`${inputClass} pr-10`}
                 >
                   {SERVICE_TYPES.map((type) => (
                     <option key={type} value={type}>
                       {SERVICE_LABELS[type]}
                     </option>
                   ))}
-                </select>
+                </SelectField>
               </div>
 
               <div>
@@ -416,23 +458,15 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
                     (opsional)
                   </span>
                 </label>
-                <input
+                <SuggestionInput
                   id="source"
-                  list="order-source-options"
                   value={source}
-                  onChange={(event) => setSource(event.target.value)}
-                  placeholder="Instagram, WhatsApp, repeat order..."
-                  className={inputClass}
+                  onChange={setSource}
+                  suggestions={sourceSuggestions}
                 />
-                <datalist id="order-source-options">
-                  {sources.map((option) => (
-                    <option key={option.source} value={option.source}>
-                      {option.count} pesanan
-                    </option>
-                  ))}
-                </datalist>
                 <p className="mt-1.5 font-sans text-[9px] text-brand-muted">
-                  Pilihan diambil otomatis dari pesanan sebelumnya.
+                  Ketik bebas, atau pilih dari sumber yang sudah dipakai di
+                  pesanan sebelumnya.
                 </p>
               </div>
 
@@ -568,7 +602,7 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
                       <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_110px_180px]">
                         <div>
                           <label className={labelClass}>Produk &amp; Varian</label>
-                          <select
+                          <SelectField
                             value={item.selection}
                             onChange={(event) =>
                               handleSelectionChange(
@@ -577,7 +611,7 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
                               )
                             }
                             required
-                            className={inputClass}
+                            className={`${inputClass} pr-10`}
                           >
                             <option value="">Pilih varian…</option>
                             {catalog.map((product) =>
@@ -614,7 +648,7 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
                                 hilang)
                               </option>
                             )}
-                          </select>
+                          </SelectField>
                         </div>
 
                         <div>
@@ -761,17 +795,17 @@ export default function OrderForm({ order, catalog, sources }: OrderFormProps) {
               <span className="font-mono text-[9px] text-brand-muted">03</span>
             </div>
 
-            <select
+            <SelectField
               value={status}
               onChange={(event) => setStatus(event.target.value as OrderStatus)}
-              className={inputClass}
+              className={`${inputClass} pr-10`}
             >
               {ORDER_STATUSES.map((option) => (
                 <option key={option} value={option}>
                   {ORDER_STATUS_LABELS[option]}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </section>
         </div>
       </div>

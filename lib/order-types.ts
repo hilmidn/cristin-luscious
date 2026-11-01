@@ -101,6 +101,17 @@ export type OrderSourceOption = {
   count: number;
 };
 
+/**
+ * Pelanggan yang sudah pernah memesan — dipakai untuk autocomplete nama
+ * pemesan supaya no. HP dan alamat bisa terisi otomatis.
+ */
+export type OrderCustomerOption = {
+  name: string;
+  phone: string;
+  address: string;
+  orderCount: number;
+};
+
 export type OrderableVariant = {
   id: string;
   name: string;

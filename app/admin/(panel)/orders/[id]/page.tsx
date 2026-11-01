@@ -7,6 +7,7 @@ import OrderStatusControl from "@/components/admin/orders/OrderStatusControl";
 import {
   getAdminOrderById,
   getOrderableProducts,
+  getOrderCustomers,
   getOrderSources,
 } from "@/lib/orders";
 import { formatOrderDate, formatRupiah } from "@/lib/order-types";
@@ -29,10 +30,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function EditOrderPage({ params }: Props) {
   const { id } = await params;
 
-  const [order, catalog, sources] = await Promise.all([
+  const [order, catalog, sources, customers] = await Promise.all([
     getAdminOrderById(id),
     getOrderableProducts(),
     getOrderSources(),
+    getOrderCustomers(),
   ]);
 
   if (!order) {
@@ -54,7 +56,12 @@ export default async function EditOrderPage({ params }: Props) {
         }
       />
 
-      <OrderForm order={order} catalog={catalog} sources={sources} />
+      <OrderForm
+        order={order}
+        catalog={catalog}
+        sources={sources}
+        customers={customers}
+      />
     </>
   );
 }

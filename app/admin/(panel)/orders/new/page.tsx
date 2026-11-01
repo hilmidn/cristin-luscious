@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PageHeading from "@/components/admin/PageHeading";
 import OrderForm from "@/components/admin/orders/OrderForm";
-import { getOrderableProducts, getOrderSources } from "@/lib/orders";
+import { getOrderableProducts, getOrderCustomers, getOrderSources } from "@/lib/orders";
 
 export const metadata: Metadata = {
   title: "Pesanan Baru",
@@ -10,9 +10,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function NewOrderPage() {
-  const [catalog, sources] = await Promise.all([
+  const [catalog, sources, customers] = await Promise.all([
     getOrderableProducts(),
     getOrderSources(),
+    getOrderCustomers(),
   ]);
 
   return (
@@ -24,7 +25,7 @@ export default async function NewOrderPage() {
         description="Masukkan pesanan yang masuk lewat WhatsApp atau Instagram. Kode invoice dibuat otomatis setelah disimpan."
       />
 
-      <OrderForm catalog={catalog} sources={sources} />
+      <OrderForm catalog={catalog} sources={sources} customers={customers} />
     </>
   );
 }

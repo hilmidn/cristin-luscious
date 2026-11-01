@@ -4,6 +4,7 @@ import {
   type OrderSourceOption,
   type OrderStatus,
 } from "@/lib/order-types";
+import SelectField from "@/components/admin/SelectField";
 
 type OrderFiltersProps = {
   statuses: OrderStatus[];
@@ -39,11 +40,11 @@ export default function OrderFilters({
       }`}
     >
       {hasMonthFilter && (
-        <select
+        <SelectField
           name="month"
           defaultValue={params.month ?? "all"}
           aria-label="Filter bulan"
-          className={fieldClass}
+          className={`${fieldClass} w-full pr-9`}
         >
           <option value="all">Semua bulan</option>
           {months?.map((monthKey) => (
@@ -51,14 +52,14 @@ export default function OrderFilters({
               {monthKeyLabel(monthKey)}
             </option>
           ))}
-        </select>
+        </SelectField>
       )}
 
-      <select
+      <SelectField
         name="status"
         defaultValue={params.status ?? ""}
         aria-label="Filter status"
-        className={fieldClass}
+        className={`${fieldClass} w-full pr-9`}
       >
         <option value="">Semua status</option>
         {statuses.map((status) => (
@@ -66,13 +67,13 @@ export default function OrderFilters({
             {ORDER_STATUS_LABELS[status]}
           </option>
         ))}
-      </select>
+      </SelectField>
 
-      <select
+      <SelectField
         name="source"
         defaultValue={params.source ?? ""}
         aria-label="Filter sumber"
-        className={fieldClass}
+        className={`${fieldClass} w-full pr-9`}
       >
         <option value="">Semua sumber</option>
         {sources.map((option) => (
@@ -80,7 +81,7 @@ export default function OrderFilters({
             {option.source} ({option.count})
           </option>
         ))}
-      </select>
+      </SelectField>
 
       <input
         name="q"

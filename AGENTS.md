@@ -41,7 +41,8 @@ Website Cristin Luscious (cookies & dessert premium) + area admin privat di `/ad
 - `Order` menyimpan `code` invoice `CL-YYMMDD-NNN` (urutan per hari, retry saat `P2002`), pelanggan, alamat, `serviceType` (`PICKUP`/`ANTAR`), `deliveryPoint` (wajib saat ANTAR), ongkir manual, subtotal, total, dan `status`.
 - `OrderItem` menyimpan **snapshot** `productName`/`variantName`/`unitPrice`; relasi `variantId`/`productId` nullable dengan `onDelete: SetNull` supaya `saveProduct` tetap bisa menghapus varian yang sudah dipesan.
 - Harga item bervarian selalu diambil dari DB di server; client hanya mengirim pilihan + quantity. Item produk tanpa varian (custom) boleh pakai harga manual.
-- `source` **tanpa tabel master**: `getOrderSources()` memakai `groupBy` dari data pesanan dan dipakai sebagai `<datalist>` + filter.
+- `source` **tanpa tabel master**: `getOrderSources()` memakai `groupBy` dari data pesanan, dipakai sebagai saran di field Sumber (input bebas + autocomplete, bukan `select`) dan sebagai filter.
+- Nama pemesan juga autocomplete dari `getOrderCustomers()` (dedupe per no. HP ternormalisasi, data dari pesanan terbaru). Memilih nama pelanggan lama otomatis mengisi no. HP dan alamat; isian tetap boleh diketik manual.
 - Daftar pesanan dipisah dua halaman: `/admin/orders` hanya status aktif (`BARU`, `DIPROSES`), sedangkan `/admin/orders/recap` menampung `SELESAI` dan `DIBATALKAN`. Filter status per halaman dibatasi ke status yang relevan lewat `getAdminOrders({ statuses })`.
 - Tabel dan filter dipakai bersama oleh kedua halaman: `components/admin/orders/OrderTable.tsx` + `OrderFilters.tsx`. Detail dibuka sebagai popup (`OrderDetailDialog.tsx`, data lengkap sudah ikut di query list); edit tetap halaman `/admin/orders/[id]`.
 - Helper murni (label, `formatRupiah`, `calculateOrderTotals`, `normalizePhone`) ada di `lib/order-types.ts`; query server-only di `lib/orders.ts`. Form ada di `components/admin/orders/OrderForm.tsx`.

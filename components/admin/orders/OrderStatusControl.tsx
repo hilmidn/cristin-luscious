@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setOrderStatus } from "@/app/admin/(panel)/orders/actions";
+import SelectField from "@/components/admin/SelectField";
 import {
   ORDER_STATUSES,
   ORDER_STATUS_LABELS,
@@ -40,20 +41,22 @@ export default function OrderStatusControl({
   }
 
   return (
-    <label className="inline-flex items-center gap-2 border border-brand-border bg-brand-card px-2.5 py-1.5">
+    <label className="inline-flex items-center border border-brand-border bg-brand-card px-2.5 py-1.5">
       <span className="sr-only">Ubah status pesanan</span>
-      <select
+      <SelectField
         value={value}
         disabled={isPending}
         onChange={(event) => handleChange(event.target.value as OrderStatus)}
-        className="cursor-pointer bg-transparent font-sans text-[9px] font-bold uppercase tracking-[0.14em] text-brand-dark outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        iconSize={11}
+        iconClassName="right-1.5 text-brand-dark"
+        className="cursor-pointer bg-transparent pr-6 font-sans text-[9px] font-bold uppercase tracking-[0.14em] text-brand-dark outline-none disabled:cursor-not-allowed disabled:opacity-60"
       >
         {ORDER_STATUSES.map((option) => (
           <option key={option} value={option}>
             {ORDER_STATUS_LABELS[option]}
           </option>
         ))}
-      </select>
+      </SelectField>
     </label>
   );
 }
