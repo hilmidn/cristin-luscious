@@ -36,19 +36,15 @@ async function seedAdmin(client: ReturnType<typeof getPrisma>) {
 
 async function seedCatalog(client: ReturnType<typeof getPrisma>) {
   const existingProducts = await client.product.count();
-  const force = process.env.SEED_CATALOG_FORCE === "1";
 
-  if (existingProducts > 0 && !force) {
+  // Seed katalog hanya untuk database baru. Begitu ada produk, katalog
+  // sepenuhnya dikelola dari /admin — seed tidak boleh menghapus/menimpa.
+  if (existingProducts > 0) {
     console.log(
       `Katalog dilewati: sudah ada ${existingProducts} produk. ` +
-        "Set SEED_CATALOG_FORCE=1 untuk menimpa data awal.",
+        "Seed katalog hanya berjalan sekali, saat tabel produk masih kosong.",
     );
     return;
-  }
-
-  if (force) {
-    console.log("SEED_CATALOG_FORCE=1 — menghapus produk lama...");
-    await client.product.deleteMany();
   }
 
   for (const product of seedProducts) {

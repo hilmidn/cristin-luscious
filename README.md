@@ -51,7 +51,7 @@ npm run db:seed
 | `npm run build` | Generate Prisma client + production build |
 | `npm run db:deploy` | Jalankan migration ke database |
 | `npm run db:push` | Sinkronisasi schema tanpa migration (prototyping) |
-| `npm run db:seed` | Buat/perbarui akun admin |
+| `npm run db:seed` | Buat/perbarui akun admin; katalog awal hanya diisi bila tabel produk masih kosong |
 | `npm run db:studio` | Prisma Studio |
 
 ## Struktur Rute

@@ -27,7 +27,7 @@ Website Cristin Luscious (cookies & dessert premium) + area admin privat di `/ad
 - `next.config.ts` memuat `serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg"]`.
 - `prisma.config.ts` memuat `.env.local` eksplisit (Prisma CLI tidak membacanya sendiri) dan memakai `DIRECT_URL ?? DATABASE_URL`.
 - Env: `DATABASE_URL` = koneksi Neon pooled (runtime), `DIRECT_URL` = direct (migration). Lihat `.env.example`.
-- Migration ada di `prisma/migrations` (jangan `db push` untuk perubahan yang mau di-commit). Seed: `tsx prisma/seed.ts`; katalog hanya di-seed bila kosong kecuali `SEED_CATALOG_FORCE=1`.
+- Migration ada di `prisma/migrations` (jangan `db push` untuk perubahan yang mau di-commit). Seed: `tsx prisma/seed.ts`; admin di-upsert, sedangkan katalog **hanya** di-seed sekali saat tabel produk masih kosong. Tidak ada opsi paksa/reset — setelah ada produk, katalog dikelola dari `/admin`.
 
 ## Konvensi katalog & gambar
 
