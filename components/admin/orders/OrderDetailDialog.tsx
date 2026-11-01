@@ -21,6 +21,7 @@ type OrderDetailDialogProps = {
 const statusClass: Record<AdminOrder["status"], string> = {
   BARU: "border-brand-dark bg-brand-dark text-brand-bg",
   DIPROSES: "border-brand-border bg-brand-card text-brand-dark",
+  SELESAI_PRODUKSI: "border-brand-dark bg-brand-bg text-brand-dark",
   SELESAI: "border-brand-border bg-brand-bg text-brand-text",
   DIBATALKAN: "border-brand-border bg-brand-bg text-brand-muted",
 };

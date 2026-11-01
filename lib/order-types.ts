@@ -10,7 +10,12 @@ export const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
 export type ServiceType = "PICKUP" | "ANTAR";
 
-export type OrderStatus = "BARU" | "DIPROSES" | "SELESAI" | "DIBATALKAN";
+export type OrderStatus =
+  | "BARU"
+  | "DIPROSES"
+  | "SELESAI_PRODUKSI"
+  | "SELESAI"
+  | "DIBATALKAN";
 
 export const SERVICE_TYPES: ServiceType[] = ["PICKUP", "ANTAR"];
 
@@ -22,6 +27,7 @@ export const SERVICE_LABELS: Record<ServiceType, string> = {
 export const ORDER_STATUSES: OrderStatus[] = [
   "BARU",
   "DIPROSES",
+  "SELESAI_PRODUKSI",
   "SELESAI",
   "DIBATALKAN",
 ];
@@ -29,6 +35,7 @@ export const ORDER_STATUSES: OrderStatus[] = [
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   BARU: "Baru",
   DIPROSES: "Diproses",
+  SELESAI_PRODUKSI: "Selesai Produksi",
   SELESAI: "Selesai",
   DIBATALKAN: "Dibatalkan",
 };

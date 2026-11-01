@@ -239,29 +239,39 @@ export async function getOrderStats() {
   const prisma = getPrisma();
   const thisMonth = monthFilter(jakartaMonthKey(new Date()));
 
-  const [total, baru, diproses, selesai, dibatalkan, revenue, cancelled] =
-    await Promise.all([
-      prisma.order.count(),
-      prisma.order.count({ where: { status: "BARU" } }),
-      prisma.order.count({ where: { status: "DIPROSES" } }),
-      prisma.order.count({ where: { status: "SELESAI" } }),
-      prisma.order.count({ where: { status: "DIBATALKAN" } }),
-      // Pendapatan hanya dari pesanan yang benar-benar selesai.
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { status: "SELESAI", ...thisMonth },
-      }),
-      // Nilai pesanan batal dipisah supaya tidak tercampur ke pendapatan.
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { status: "DIBATALKAN", ...thisMonth },
-      }),
-    ]);
+  const [
+    total,
+    baru,
+    diproses,
+    selesaiProduksi,
+    selesai,
+    dibatalkan,
+    revenue,
+    cancelled,
+  ] = await Promise.all([
+    prisma.order.count(),
+    prisma.order.count({ where: { status: "BARU" } }),
+    prisma.order.count({ where: { status: "DIPROSES" } }),
+    prisma.order.count({ where: { status: "SELESAI_PRODUKSI" } }),
+    prisma.order.count({ where: { status: "SELESAI" } }),
+    prisma.order.count({ where: { status: "DIBATALKAN" } }),
+    // Pendapatan hanya dari pesanan yang benar-benar selesai.
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { status: "SELESAI", ...thisMonth },
+    }),
+    // Nilai pesanan batal dipisah supaya tidak tercampur ke pendapatan.
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { status: "DIBATALKAN", ...thisMonth },
+    }),
+  ]);
 
   return {
     total,
     baru,
     diproses,
+    selesaiProduksi,
     selesai,
     dibatalkan,
     monthRevenue: revenue._sum.total ?? 0,

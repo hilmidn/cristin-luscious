@@ -465,6 +465,22 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
             });
           }
 
+          // Bila nota sebelumnya sudah selesai produksi lalu ditambah item
+          // baru, produksi otomatis dibuka lagi agar task tidak menggantung.
+          if (orderData.status === "SELESAI_PRODUKSI") {
+            const pending = await tx.productionTask.count({
+              where: { orderId: order.id, stage: { not: "SIAP" } },
+            });
+
+            if (pending > 0) {
+              await tx.order.update({
+                where: { id: order.id },
+                data: { status: "DIPROSES" },
+                select: { id: true },
+              });
+            }
+          }
+
           return order;
         });
       } catch (error) {

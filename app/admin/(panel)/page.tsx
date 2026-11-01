@@ -27,7 +27,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const ACTIVE_STATUSES: OrderStatus[] = ["BARU", "DIPROSES"];
+const ACTIVE_STATUSES: OrderStatus[] = [
+  "BARU",
+  "DIPROSES",
+  "SELESAI_PRODUKSI",
+];
 
 export default async function AdminDashboardPage() {
   const currentMonth = jakartaMonthKey(new Date());
@@ -39,13 +43,13 @@ export default async function AdminDashboardPage() {
     getAdminOrders({ statuses: ACTIVE_STATUSES, limit: 5 }),
   ]);
 
-  const activeCount = stats.baru + stats.diproses;
+  const activeCount = stats.baru + stats.diproses + stats.selesaiProduksi;
 
   const cards = [
     {
       label: "Pesanan Aktif",
       value: activeCount,
-      hint: `${stats.baru} baru · ${stats.diproses} diproses`,
+      hint: `${stats.baru} baru · ${stats.diproses} diproses · ${stats.selesaiProduksi} siap`,
       icon: ClipboardList,
       index: "01",
     },
@@ -187,7 +191,9 @@ export default async function AdminDashboardPage() {
                         className={`inline-flex border px-1.5 py-0.5 font-sans text-[7px] font-bold uppercase tracking-[0.14em] ${
                           order.status === "BARU"
                             ? "border-brand-dark bg-brand-dark text-brand-bg"
-                            : "border-brand-border bg-brand-card text-brand-text"
+                            : order.status === "SELESAI_PRODUKSI"
+                              ? "border-brand-dark bg-brand-bg text-brand-dark"
+                              : "border-brand-border bg-brand-card text-brand-text"
                         }`}
                       >
                         {ORDER_STATUS_LABELS[order.status]}

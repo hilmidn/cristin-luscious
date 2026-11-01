@@ -14,7 +14,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /** Pesanan yang masih perlu dikerjakan. Sisanya ada di halaman Rekap. */
-const ACTIVE_STATUSES: OrderStatus[] = ["BARU", "DIPROSES"];
+const ACTIVE_STATUSES: OrderStatus[] = [
+  "BARU",
+  "DIPROSES",
+  "SELESAI_PRODUKSI",
+];
 
 type Props = {
   searchParams: Promise<{
@@ -41,7 +45,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     getOrderStats(),
   ]);
 
-  const activeCount = stats.baru + stats.diproses;
+  const activeCount = stats.baru + stats.diproses + stats.selesaiProduksi;
 
   return (
     <>
@@ -49,7 +53,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         eyebrow="Penjualan"
         title="Pesanan"
         accent="aktif"
-        description="Pesanan yang sedang berjalan: baru masuk atau diproses. Pesanan yang sudah selesai atau dibatalkan ada di Rekap Pesanan."
+        description="Pesanan yang sedang berjalan: baru masuk, diproses, atau selesai produksi. Pesanan yang sudah selesai atau dibatalkan ada di Rekap Pesanan."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <Link
@@ -71,7 +75,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         }
       />
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border border-brand-border bg-brand-card px-4 py-3">
           <p className="font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
             Pesanan Aktif
@@ -94,6 +98,14 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           </p>
           <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
             {stats.diproses}
+          </p>
+        </div>
+        <div className="border border-brand-border bg-brand-card px-4 py-3">
+          <p className="font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
+            Selesai Produksi
+          </p>
+          <p className="mt-1 font-playfair text-2xl font-bold text-brand-dark">
+            {stats.selesaiProduksi}
           </p>
         </div>
       </div>

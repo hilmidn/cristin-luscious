@@ -27,6 +27,7 @@ enum ServiceType {
 enum OrderStatus {
   BARU
   DIPROSES
+  SELESAI_PRODUKSI
   SELESAI
   DIBATALKAN
 }
