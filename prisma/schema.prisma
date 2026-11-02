@@ -175,27 +175,40 @@ model Ingredient {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  purchases   IngredientPurchase[]
-  recipeItems RecipeItem[]
-  movements   IngredientMovement[]
+  purchaseItems PurchaseItem[]
+  recipeItems   RecipeItem[]
+  movements     IngredientMovement[]
 
   @@map("ingredients")
 }
 
-model IngredientPurchase {
-  id           String     @id @default(cuid())
-  ingredientId String
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-  qty          Float // selalu masuk (stock-in)
-  unitCost     Int        @default(0) // harga beli per unit (IDR)
-  totalCost    Int        @default(0)
-  supplier     String?
-  note         String?
-  purchasedAt  DateTime   @default(now())
-  createdAt    DateTime   @default(now())
+model PurchaseNote {
+  id          String   @id @default(cuid())
+  supplier    String?
+  note        String?
+  totalCost   Int      @default(0)
+  purchasedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
 
-  @@index([ingredientId, purchasedAt])
-  @@map("ingredient_purchases")
+  items PurchaseItem[]
+
+  @@index([purchasedAt])
+  @@map("purchase_notes")
+}
+
+model PurchaseItem {
+  id             String       @id @default(cuid())
+  purchaseNoteId String
+  purchaseNote   PurchaseNote @relation(fields: [purchaseNoteId], references: [id], onDelete: Cascade)
+  ingredientId   String
+  ingredient     Ingredient   @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  qty            Float
+  unitCost       Int          @default(0)
+  totalCost      Int          @default(0)
+
+  @@index([purchaseNoteId])
+  @@index([ingredientId])
+  @@map("purchase_items")
 }
 
 model RecipeItem {

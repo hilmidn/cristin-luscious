@@ -6,6 +6,7 @@ import {
   Layers,
   LayoutDashboard,
   Package,
+  ReceiptText,
   Settings,
   ShoppingBag,
 } from "lucide-react";
@@ -50,6 +51,11 @@ export const adminNav: AdminNavGroup[] = [
         label: "Bahan Baku",
         href: "/admin/ingredients",
         icon: Package,
+      },
+      {
+        label: "Pembelian",
+        href: "/admin/ingredients/purchases",
+        icon: ReceiptText,
       },
       {
         label: "Resep",

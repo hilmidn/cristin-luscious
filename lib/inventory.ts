@@ -5,7 +5,8 @@ import { getPrisma } from "./prisma";
 import type {
   IngredientInput,
   IngredientRow,
-  PurchaseInput,
+  PurchaseNoteInput,
+  PurchaseNoteRow,
   RecipeItemInput,
   RecipeProductNode,
   RecipeRow,
@@ -27,13 +28,16 @@ export async function getIngredients(): Promise<IngredientRow[]> {
     prisma.ingredient.findMany({
       orderBy: { name: "asc" },
       include: {
-        purchases: {
-          orderBy: { purchasedAt: "desc" },
+        purchaseItems: {
+          orderBy: { purchaseNote: { purchasedAt: "desc" } },
           take: 5,
+          include: {
+            purchaseNote: { select: { supplier: true, purchasedAt: true } },
+          },
         },
       },
     }),
-    prisma.ingredientPurchase.groupBy({
+    prisma.purchaseItem.groupBy({
       by: ["ingredientId"],
       _sum: { qty: true },
     }),
@@ -52,13 +56,13 @@ export async function getIngredients(): Promise<IngredientRow[]> {
     isLow: ing.stockQty <= ing.minStockQty,
     totalPurchased: totalByIngredient.get(ing.id) ?? 0,
     note: ing.note,
-    recentPurchases: ing.purchases.map((p) => ({
+    recentPurchases: ing.purchaseItems.map((p) => ({
       id: p.id,
       qty: p.qty,
       unitCost: p.unitCost,
       totalCost: p.totalCost,
-      supplier: p.supplier,
-      purchasedAt: p.purchasedAt,
+      supplier: p.purchaseNote.supplier,
+      purchasedAt: p.purchaseNote.purchasedAt,
     })),
   }));
 }
@@ -94,41 +98,96 @@ export async function deleteIngredient(id: string) {
 }
 
 /**
- * Catat pembelian bahan: stock-in + jurnal movement PURCHASE (atomic).
+ * Catat nota pembelian (bisa banyak bahan sekaligus): stock-in per bahan
+ * + jurnal movement PURCHASE per baris (atomic).
  */
-export async function createPurchase(input: PurchaseInput) {
+export async function createPurchaseNote(input: PurchaseNoteInput) {
   const prisma = getPrisma();
 
+  const items = input.items.filter((item) => item.qty > 0);
+  if (items.length === 0) {
+    throw new Error("Nota pembelian harus punya minimal satu baris bahan.");
+  }
+
+  const totalCost = items.reduce(
+    (acc, item) => acc + Math.round(item.qty * item.unitCost),
+    0,
+  );
+
   return prisma.$transaction(async (tx) => {
-    const purchase = await tx.ingredientPurchase.create({
+    const note = await tx.purchaseNote.create({
       data: {
-        ingredientId: input.ingredientId,
-        qty: input.qty,
-        unitCost: input.unitCost,
-        totalCost: Math.round(input.qty * input.unitCost),
         supplier: input.supplier?.trim() || null,
         note: input.note?.trim() || null,
+        purchasedAt: input.purchasedAt ? new Date(input.purchasedAt) : new Date(),
+        totalCost,
+        items: {
+          create: items.map((item) => ({
+            ingredientId: item.ingredientId,
+            qty: item.qty,
+            unitCost: Math.round(item.unitCost),
+            totalCost: Math.round(item.qty * item.unitCost),
+          })),
+        },
       },
+      include: { items: true },
     });
 
-    await tx.ingredient.update({
-      where: { id: input.ingredientId },
-      data: { stockQty: { increment: input.qty } },
-    });
+    for (const item of note.items) {
+      await tx.ingredient.update({
+        where: { id: item.ingredientId },
+        data: { stockQty: { increment: item.qty } },
+      });
 
-    await tx.ingredientMovement.create({
-      data: {
-        ingredientId: input.ingredientId,
-        type: "PURCHASE",
-        qty: input.qty,
-        note: input.supplier?.trim()
-          ? `Pembelian dari ${input.supplier.trim()}`
-          : "Pembelian bahan",
-      },
-    });
+      await tx.ingredientMovement.create({
+        data: {
+          ingredientId: item.ingredientId,
+          type: "PURCHASE",
+          qty: item.qty,
+          note: input.supplier?.trim()
+            ? `Pembelian dari ${input.supplier.trim()}`
+            : "Pembelian bahan",
+        },
+      });
+    }
 
-    return purchase;
+    return note;
   });
+}
+
+/**
+ * Rekap nota pembelian terbaru (untuk halaman rekap pembelian).
+ */
+export async function getPurchaseNotes(limit = 50): Promise<PurchaseNoteRow[]> {
+  const prisma = getPrisma();
+
+  const notes = await prisma.purchaseNote.findMany({
+    orderBy: { purchasedAt: "desc" },
+    take: limit,
+    include: {
+      items: {
+        include: { ingredient: { select: { name: true, unit: true } } },
+      },
+    },
+  });
+
+  return notes.map((note) => ({
+    id: note.id,
+    supplier: note.supplier,
+    note: note.note,
+    totalCost: note.totalCost,
+    purchasedAt: note.purchasedAt,
+    itemCount: note.items.length,
+    items: note.items.map((item) => ({
+      id: item.id,
+      ingredientId: item.ingredientId,
+      ingredientName: item.ingredient.name,
+      unit: item.ingredient.unit,
+      qty: item.qty,
+      unitCost: item.unitCost,
+      totalCost: item.totalCost,
+    })),
+  }));
 }
 
 /**

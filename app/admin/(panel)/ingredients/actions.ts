@@ -6,11 +6,14 @@ import { authOptions } from "@/lib/auth";
 import {
   adjustStock,
   createIngredient,
-  createPurchase,
+  createPurchaseNote,
   deleteIngredient,
   updateIngredient,
 } from "@/lib/inventory";
-import type { IngredientInput, PurchaseInput } from "@/lib/inventory-types";
+import type {
+  IngredientInput,
+  PurchaseNoteInput,
+} from "@/lib/inventory-types";
 
 export type SimpleActionResult = { ok: true } | { ok: false; error: string };
 
@@ -93,24 +96,43 @@ export async function deleteIngredientAction(id: string) {
   }
 }
 
-export async function purchaseAction(input: PurchaseInput) {
+export async function purchaseAction(input: PurchaseNoteInput) {
   await requireAdmin();
 
   try {
-    if (!Number.isFinite(input.qty) || input.qty <= 0) {
-      return { ok: false, error: "Jumlah pembelian harus lebih dari 0." } as SimpleActionResult;
-    }
-    if (!Number.isFinite(input.unitCost) || input.unitCost < 0) {
-      return { ok: false, error: "Harga per unit tidak valid." } as SimpleActionResult;
+    const items = input.items.filter(
+      (item) => Number.isFinite(item.qty) && item.qty > 0,
+    );
+
+    if (items.length === 0) {
+      return {
+        ok: false,
+        error: "Minimal satu baris bahan dengan jumlah lebih dari 0.",
+      } as SimpleActionResult;
     }
 
-    await createPurchase(input);
+    for (const item of items) {
+      if (!Number.isFinite(item.unitCost) || item.unitCost < 0) {
+        return {
+          ok: false,
+          error: "Harga per unit tidak valid.",
+        } as SimpleActionResult;
+      }
+    }
+
+    await createPurchaseNote({
+      supplier: input.supplier,
+      note: input.note,
+      purchasedAt: input.purchasedAt,
+      items,
+    });
+
     revalidateInventory();
 
     return { ok: true } as SimpleActionResult;
   } catch (error) {
     console.error("purchaseAction", error);
-    return { ok: false, error: "Gagal mencatat pembelian." } as SimpleActionResult;
+    return { ok: false, error: "Gagal mencatat nota pembelian." } as SimpleActionResult;
   }
 }
 

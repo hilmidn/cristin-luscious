@@ -38,12 +38,38 @@ export type RecipeProductNode = {
   variants: RecipeVariantNode[];
 };
 
-export type PurchaseInput = {
+/** Satu baris bahan di dalam nota pembelian. */
+export type PurchaseNoteItemInput = {
   ingredientId: string;
   qty: number;
   unitCost: number;
+};
+
+export type PurchaseNoteInput = {
   supplier?: string;
   note?: string;
+  purchasedAt?: string; // ISO string, opsional (default sekarang)
+  items: PurchaseNoteItemInput[];
+};
+
+export type PurchaseNoteItemRow = {
+  id: string;
+  ingredientId: string;
+  ingredientName: string;
+  unit: string;
+  qty: number;
+  unitCost: number;
+  totalCost: number;
+};
+
+export type PurchaseNoteRow = {
+  id: string;
+  supplier: string | null;
+  note: string | null;
+  totalCost: number;
+  purchasedAt: Date;
+  itemCount: number;
+  items: PurchaseNoteItemRow[];
 };
 
 export type IngredientInput = {

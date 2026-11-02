@@ -16,6 +16,7 @@ import {
   History,
   Pencil,
   Plus,
+  ReceiptText,
   ShoppingCart,
   Scale,
   Trash2,
@@ -25,7 +26,7 @@ import {
 type ModalMode =
   | { kind: "none" }
   | { kind: "form"; editing: IngredientRow | null }
-  | { kind: "purchase"; ingredient: IngredientRow }
+  | { kind: "purchase-note"; initialIngredient: IngredientRow | null }
   | { kind: "adjust"; ingredient: IngredientRow }
   | { kind: "history"; ingredient: IngredientRow };
 
@@ -35,6 +36,19 @@ type FormState = {
   minStockQty: string;
   note: string;
 };
+
+type NoteRow = {
+  key: string;
+  ingredientId: string;
+  qty: string;
+  unitCost: string;
+};
+
+let noteRowSeq = 0;
+function newNoteRow(): NoteRow {
+  noteRowSeq += 1;
+  return { key: `row-${noteRowSeq}`, ingredientId: "", qty: "", unitCost: "" };
+}
 
 const fieldLabel =
   "mb-1.5 block font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text";
@@ -61,9 +75,10 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const [purchaseQty, setPurchaseQty] = useState("");
-  const [purchaseCost, setPurchaseCost] = useState("");
-  const [purchaseSupplier, setPurchaseSupplier] = useState("");
+  // Nota pembelian (multi bahan)
+  const [noteRows, setNoteRows] = useState<NoteRow[]>([]);
+  const [noteSupplier, setNoteSupplier] = useState("");
+  const [noteDate, setNoteDate] = useState("");
   const [adjustQty, setAdjustQty] = useState("");
   const [adjustNote, setAdjustNote] = useState("");
 
@@ -87,6 +102,15 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const noteTotal = useMemo(
+    () =>
+      noteRows.reduce(
+        (acc, row) => acc + (Number(row.qty) || 0) * (Number(row.unitCost) || 0),
+        0,
+      ),
+    [noteRows],
+  );
+
   const openForm = (editing: IngredientRow | null) => {
     setError(null);
     setForm(
@@ -102,12 +126,16 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
     setModal({ kind: "form", editing });
   };
 
-  const openPurchase = (ingredient: IngredientRow) => {
+  const openPurchaseNote = (initialIngredient: IngredientRow | null) => {
     setError(null);
-    setPurchaseQty("");
-    setPurchaseCost("");
-    setPurchaseSupplier("");
-    setModal({ kind: "purchase", ingredient });
+    setNoteSupplier("");
+    setNoteDate("");
+    setNoteRows([
+      initialIngredient
+        ? { ...newNoteRow(), ingredientId: initialIngredient.id }
+        : newNoteRow(),
+    ]);
+    setModal({ kind: "purchase-note", initialIngredient });
   };
 
   const openAdjust = (ingredient: IngredientRow) => {
@@ -140,15 +168,20 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
     });
   };
 
-  const submitPurchase = () => {
-    if (modal.kind !== "purchase") return;
+  const submitPurchaseNote = () => {
+    const items = noteRows
+      .filter((row) => row.ingredientId && Number(row.qty) > 0)
+      .map((row) => ({
+        ingredientId: row.ingredientId,
+        qty: Number(row.qty) || 0,
+        unitCost: Math.round(Number(row.unitCost) || 0),
+      }));
 
     startTransition(async () => {
       const result = await purchaseAction({
-        ingredientId: modal.ingredient.id,
-        qty: Number(purchaseQty) || 0,
-        unitCost: Math.round(Number(purchaseCost) || 0),
-        supplier: purchaseSupplier,
+        supplier: noteSupplier,
+        purchasedAt: noteDate || undefined,
+        items,
       });
 
       if (!result.ok) {
@@ -233,10 +266,20 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
           placeholder="Cari bahan..."
           className="w-full border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-xs text-brand-dark outline-none transition-colors focus:border-brand-dark placeholder:text-brand-muted sm:max-w-xs"
         />
-        <button onClick={() => openForm(null)} disabled={isPending} className={buttonPrimary}>
-          <Plus className="h-3.5 w-3.5" />
-          Tambah Bahan
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            onClick={() => openPurchaseNote(null)}
+            disabled={isPending || ingredients.length === 0}
+            className={buttonPrimary}
+          >
+            <ReceiptText className="h-3.5 w-3.5" />
+            Nota Pembelian
+          </button>
+          <button onClick={() => openForm(null)} disabled={isPending} className={buttonGhost}>
+            <Plus className="h-3.5 w-3.5" />
+            Tambah Bahan
+          </button>
+        </div>
       </div>
 
       {/* Card grid */}
@@ -269,25 +312,24 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
                     <h3 className="min-w-0 truncate font-playfair text-base font-bold uppercase tracking-tight text-brand-dark">
                       {ing.name}
                     </h3>
-                    <span
-                      className={`shrink-0 border px-2 py-0.5 font-sans text-[8px] font-bold uppercase tracking-[0.2em] ${
-                        ing.isLow
-                          ? "border-brand-dark bg-brand-dark text-brand-bg"
-                          : "border-brand-border bg-brand-card text-brand-text"
-                      }`}
-                    >
-                      {ing.isLow ? "Rendah" : "Aman"}
-                    </span>
+                    {ing.isLow && (
+                      <span className="shrink-0 border border-brand-dark bg-brand-dark px-2 py-0.5 font-sans text-[8px] font-bold uppercase tracking-[0.2em] text-brand-bg">
+                        Rendah
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1.5 flex items-end justify-between gap-2">
                     <p className="font-playfair text-2xl font-bold leading-none text-brand-dark">
+                      <span className="mr-1.5 align-middle font-sans text-[9px] font-bold uppercase tracking-[0.2em] text-brand-text">
+                        Stok
+                      </span>
                       {ing.stockQty.toLocaleString("id-ID")}
                       <span className="ml-1.5 font-sans text-[11px] font-light normal-case tracking-normal text-brand-text">
                         {ing.unit}
                       </span>
                     </p>
                     <span className="flex shrink-0 items-center gap-1 font-sans text-[9px] uppercase tracking-[0.14em] text-brand-text">
-                      min {ing.minStockQty.toLocaleString("id-ID")}
+                      Min Stok {ing.minStockQty.toLocaleString("id-ID")}
                       <ChevronDown
                         className={`h-3.5 w-3.5 text-brand-muted transition-transform duration-200 ${
                           isOpen ? "rotate-180" : ""
@@ -301,7 +343,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
                 {isOpen && (
                   <div className="grid grid-cols-2 gap-2 border-t border-brand-border px-4 py-3">
                     <button
-                      onClick={() => openPurchase(ing)}
+                      onClick={() => openPurchaseNote(ing)}
                       disabled={isPending}
                       className={`${buttonPrimary} col-span-2`}
                     >
@@ -345,7 +387,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
             <div className="flex items-center justify-between border-b border-brand-border px-6 py-4">
               <h3 className="font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
                 {modal.kind === "form" && (modal.editing ? "Edit Bahan" : "Tambah Bahan")}
-                {modal.kind === "purchase" && `Pembelian · ${modal.ingredient.name}`}
+                {modal.kind === "purchase-note" && "Nota Pembelian"}
                 {modal.kind === "adjust" && `Koreksi Stok · ${modal.ingredient.name}`}
                 {modal.kind === "history" && `Riwayat · ${modal.ingredient.name}`}
               </h3>
@@ -414,64 +456,129 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
                 </div>
               )}
 
-              {modal.kind === "purchase" && (
+              {modal.kind === "purchase-note" && (
                 <div className="space-y-4">
-                  <p className="font-sans text-[11px] leading-relaxed text-brand-text">
-                    Stok saat ini{" "}
-                    <strong className="text-brand-dark">
-                      {modal.ingredient.stockQty.toLocaleString("id-ID")} {modal.ingredient.unit}
-                    </strong>
-                  </p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={fieldLabel}>Jumlah ({modal.ingredient.unit})</label>
+                      <label className={fieldLabel}>Supplier / Toko</label>
                       <input
-                        type="number"
-                        value={purchaseQty}
-                        onChange={(e) => setPurchaseQty(e.target.value)}
-                        placeholder="1000"
+                        value={noteSupplier}
+                        onChange={(e) => setNoteSupplier(e.target.value)}
+                        placeholder="Bakery Supply"
                         className={fieldInput}
                       />
                     </div>
                     <div>
-                      <label className={fieldLabel}>
-                        Harga per {modal.ingredient.unit} (Rp)
-                      </label>
+                      <label className={fieldLabel}>Tanggal</label>
                       <input
-                        type="number"
-                        value={purchaseCost}
-                        onChange={(e) => setPurchaseCost(e.target.value)}
-                        placeholder="15000"
+                        type="date"
+                        value={noteDate}
+                        onChange={(e) => setNoteDate(e.target.value)}
                         className={fieldInput}
                       />
                     </div>
                   </div>
-                  {Number(purchaseCost) > 0 && (
+
+                  {/* Baris bahan */}
+                  <div className="space-y-2">
+                    <label className={fieldLabel}>Bahan Dibeli</label>
+                    {noteRows.map((row, index) => (
+                      <div
+                        key={row.key}
+                        className="space-y-2 border border-brand-border bg-brand-card/60 p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-sans text-[8px] font-bold uppercase tracking-[0.2em] text-brand-text">
+                            Bahan {index + 1}
+                          </span>
+                          {noteRows.length > 1 && (
+                            <button
+                              onClick={() =>
+                                setNoteRows(noteRows.filter((r) => r.key !== row.key))
+                              }
+                              className="p-1 text-brand-muted transition-colors hover:text-brand-dark"
+                              title="Hapus baris"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <select
+                          value={row.ingredientId}
+                          onChange={(e) =>
+                            setNoteRows(
+                              noteRows.map((r) =>
+                                r.key === row.key ? { ...r, ingredientId: e.target.value } : r,
+                              ),
+                            )
+                          }
+                          className={fieldInput}
+                        >
+                          <option value="">— pilih bahan —</option>
+                          {ingredients.map((ing) => (
+                            <option key={ing.id} value={ing.id}>
+                              {ing.name} ({ing.unit})
+                            </option>
+                          ))}
+                        </select>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="number"
+                            value={row.qty}
+                            onChange={(e) =>
+                              setNoteRows(
+                                noteRows.map((r) =>
+                                  r.key === row.key ? { ...r, qty: e.target.value } : r,
+                                ),
+                              )
+                            }
+                            placeholder="Jumlah"
+                            className={fieldInput}
+                          />
+                          <input
+                            type="number"
+                            value={row.unitCost}
+                            onChange={(e) =>
+                              setNoteRows(
+                                noteRows.map((r) =>
+                                  r.key === row.key ? { ...r, unitCost: e.target.value } : r,
+                                ),
+                              )
+                            }
+                            placeholder="Harga total (Rp)"
+                            className={fieldInput}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setNoteRows([...noteRows, newNoteRow()])}
+                      className={`${buttonGhost} w-full`}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Tambah Baris Bahan
+                    </button>
+                  </div>
+
+                  <div className="border-t border-brand-border pt-3">
                     <p className="font-sans text-[11px] text-brand-text">
-                      Total:{" "}
+                      Total Nota:{" "}
                       <strong className="text-brand-dark">
-                        {formatRupiah(Math.round((Number(purchaseQty) || 0) * Number(purchaseCost)))}
+                        {formatRupiah(Math.round(noteTotal))}
                       </strong>
                     </p>
-                  )}
-                  <div>
-                    <label className={fieldLabel}>Supplier / Toko (opsional)</label>
-                    <input
-                      value={purchaseSupplier}
-                      onChange={(e) => setPurchaseSupplier(e.target.value)}
-                      className={fieldInput}
-                    />
                   </div>
+
                   <div className="flex justify-end gap-2 pt-1">
                     <button onClick={() => setModal({ kind: "none" })} className={buttonGhost}>
                       Batal
                     </button>
                     <button
-                      onClick={submitPurchase}
-                      disabled={isPending}
+                      onClick={submitPurchaseNote}
+                      disabled={isPending || noteTotal <= 0}
                       className={buttonPrimary}
                     >
-                      Catat
+                      Simpan Nota
                     </button>
                   </div>
                 </div>
