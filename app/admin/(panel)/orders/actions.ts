@@ -3,6 +3,7 @@
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
+import { deductIngredientsForOrder } from "@/lib/inventory";
 import { getPrisma } from "@/lib/prisma";
 import {
   calculateOrderTotals,
@@ -543,10 +544,18 @@ export async function setOrderStatus(
       return { ok: false, error: "Status tidak valid." };
     }
 
-    await getPrisma().order.update({
-      where: { id },
-      data: { status },
-      select: { id: true },
+    await getPrisma().$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id },
+        data: { status },
+        select: { id: true },
+      });
+
+      // Override manual ke SELESAI_PRODUKSI juga memotong stok bahan,
+      // dengan guard idempotent yang sama seperti jalur produksi.
+      if (status === "SELESAI_PRODUKSI") {
+        await deductIngredientsForOrder(tx, id);
+      }
     });
 
     revalidateOrders(id);
