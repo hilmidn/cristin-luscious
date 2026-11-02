@@ -12,6 +12,7 @@ import {
   updateIngredientAction,
 } from "@/app/admin/(panel)/ingredients/actions";
 import {
+  ChevronDown,
   History,
   Pencil,
   Plus,
@@ -58,6 +59,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const [purchaseQty, setPurchaseQty] = useState("");
   const [purchaseCost, setPurchaseCost] = useState("");
@@ -80,6 +82,10 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
     () => ingredients.reduce((acc, ing) => acc + ing.totalPurchased, 0),
     [ingredients],
   );
+
+  const toggle = (id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const openForm = (editing: IngredientRow | null) => {
     setError(null);
@@ -243,87 +249,92 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
           Tidak ada bahan yang cocok dengan "{search}"
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((ing) => (
-            <div
-              key={ing.id}
-              className={`flex flex-col border bg-brand-bg ${
-                ing.isLow ? "border-brand-dark" : "border-brand-border"
-              }`}
-            >
-              {/* Card head */}
-              <div className="flex items-start justify-between gap-3 border-b border-brand-border px-5 py-4">
-                <div className="min-w-0">
-                  <h3 className="truncate font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
-                    {ing.name}
-                  </h3>
-                  <span className="mt-0.5 block font-sans text-[9px] uppercase tracking-[0.2em] text-brand-muted">
-                    Satuan {ing.unit}
-                  </span>
-                </div>
-                <span
-                  className={`shrink-0 border px-2 py-1 font-sans text-[8px] font-bold uppercase tracking-[0.2em] ${
-                    ing.isLow
-                      ? "border-brand-dark bg-brand-dark text-brand-bg"
-                      : "border-brand-border bg-brand-card text-brand-text"
-                  }`}
-                >
-                  {ing.isLow ? "Rendah" : "Aman"}
-                </span>
-              </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((ing) => {
+            const isOpen = expanded[ing.id] ?? false;
 
-              {/* Stok utama */}
-              <div className="border-b border-brand-border/70 px-5 py-4">
-                <span className="block font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
-                  Stok Saat Ini
-                </span>
-                <p className="mt-1 font-playfair text-3xl font-bold text-brand-dark">
-                  {ing.stockQty.toLocaleString("id-ID")}
-                  <span className="ml-2 font-sans text-xs font-light normal-case tracking-normal text-brand-text">
-                    {ing.unit}
-                  </span>
-                </p>
-                <p className="mt-1 font-sans text-[10px] text-brand-text">
-                  Ambang {ing.minStockQty.toLocaleString("id-ID")} {ing.unit} · Terbeli{" "}
-                  {ing.totalPurchased.toLocaleString("id-ID")} {ing.unit}
-                </p>
-              </div>
+            return (
+              <div
+                key={ing.id}
+                className={`flex flex-col border bg-brand-bg ${
+                  ing.isLow ? "border-brand-dark" : "border-brand-border"
+                }`}
+              >
+                {/* Card head — tap untuk buka/tutup aksi */}
+                <button
+                  onClick={() => toggle(ing.id)}
+                  className="w-full px-4 py-3 text-left transition-colors hover:bg-brand-card/50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="min-w-0 truncate font-playfair text-base font-bold uppercase tracking-tight text-brand-dark">
+                      {ing.name}
+                    </h3>
+                    <span
+                      className={`shrink-0 border px-2 py-0.5 font-sans text-[8px] font-bold uppercase tracking-[0.2em] ${
+                        ing.isLow
+                          ? "border-brand-dark bg-brand-dark text-brand-bg"
+                          : "border-brand-border bg-brand-card text-brand-text"
+                      }`}
+                    >
+                      {ing.isLow ? "Rendah" : "Aman"}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-end justify-between gap-2">
+                    <p className="font-playfair text-2xl font-bold leading-none text-brand-dark">
+                      {ing.stockQty.toLocaleString("id-ID")}
+                      <span className="ml-1.5 font-sans text-[11px] font-light normal-case tracking-normal text-brand-text">
+                        {ing.unit}
+                      </span>
+                    </p>
+                    <span className="flex shrink-0 items-center gap-1 font-sans text-[9px] uppercase tracking-[0.14em] text-brand-text">
+                      min {ing.minStockQty.toLocaleString("id-ID")}
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 text-brand-muted transition-transform duration-200 ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </span>
+                  </div>
+                </button>
 
-              {/* Aksi */}
-              <div className="mt-auto grid grid-cols-2 gap-2 px-5 py-4">
-                <button
-                  onClick={() => openPurchase(ing)}
-                  disabled={isPending}
-                  className={`${buttonPrimary} col-span-2`}
-                >
-                  <ShoppingCart className="h-3.5 w-3.5" />
-                  Catat Pembelian
-                </button>
-                <button onClick={() => openAdjust(ing)} className={buttonGhost}>
-                  <Scale className="h-3.5 w-3.5" />
-                  Koreksi
-                </button>
-                <button
-                  onClick={() => setModal({ kind: "history", ingredient: ing })}
-                  className={buttonGhost}
-                >
-                  <History className="h-3.5 w-3.5" />
-                  Riwayat
-                </button>
-                <button onClick={() => openForm(ing)} className={buttonGhost}>
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => submitDelete(ing)}
-                  className="inline-flex items-center justify-center gap-2 border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-muted transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Hapus
-                </button>
+                {/* Aksi — muncul setelah card ditap */}
+                {isOpen && (
+                  <div className="grid grid-cols-2 gap-2 border-t border-brand-border px-4 py-3">
+                    <button
+                      onClick={() => openPurchase(ing)}
+                      disabled={isPending}
+                      className={`${buttonPrimary} col-span-2`}
+                    >
+                      <ShoppingCart className="h-3.5 w-3.5" />
+                      Catat Pembelian
+                    </button>
+                    <button onClick={() => openAdjust(ing)} className={buttonGhost}>
+                      <Scale className="h-3.5 w-3.5" />
+                      Koreksi
+                    </button>
+                    <button
+                      onClick={() => setModal({ kind: "history", ingredient: ing })}
+                      className={buttonGhost}
+                    >
+                      <History className="h-3.5 w-3.5" />
+                      Riwayat
+                    </button>
+                    <button onClick={() => openForm(ing)} className={buttonGhost}>
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => submitDelete(ing)}
+                      className="inline-flex items-center justify-center gap-2 border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-muted transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Hapus
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
