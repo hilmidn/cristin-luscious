@@ -12,7 +12,6 @@ import {
   updateIngredientAction,
 } from "@/app/admin/(panel)/ingredients/actions";
 import {
-  AlertTriangle,
   History,
   Pencil,
   Plus,
@@ -36,6 +35,18 @@ type FormState = {
   note: string;
 };
 
+const fieldLabel =
+  "mb-1.5 block font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text";
+
+const fieldInput =
+  "mt-1 w-full border border-brand-border bg-brand-bg px-3 py-2.5 font-sans text-xs text-brand-dark outline-none transition-colors focus:border-brand-dark placeholder:text-brand-muted";
+
+const buttonPrimary =
+  "inline-flex items-center justify-center gap-2 border border-brand-dark bg-brand-dark px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:opacity-50";
+
+const buttonGhost =
+  "inline-flex items-center justify-center gap-2 border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50";
+
 function emptyForm(): FormState {
   return { name: "", unit: "gram", minStockQty: "0", note: "" };
 }
@@ -46,6 +57,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
   const [modal, setModal] = useState<ModalMode>({ kind: "none" });
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const [purchaseQty, setPurchaseQty] = useState("");
   const [purchaseCost, setPurchaseCost] = useState("");
@@ -53,18 +65,21 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
   const [adjustQty, setAdjustQty] = useState("");
   const [adjustNote, setAdjustNote] = useState("");
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return ingredients;
+    return ingredients.filter((ing) => ing.name.toLowerCase().includes(q));
+  }, [ingredients, search]);
+
   const lowCount = useMemo(
     () => ingredients.filter((ing) => ing.isLow).length,
     [ingredients],
   );
+
   const totalPurchasedQty = useMemo(
     () => ingredients.reduce((acc, ing) => acc + ing.totalPurchased, 0),
     [ingredients],
   );
-
-  const refresh = () => {
-    startTransition(() => router.refresh());
-  };
 
   const openForm = (editing: IngredientRow | null) => {
     setError(null);
@@ -175,394 +190,360 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
 
   return (
     <div>
-      {/* Stat cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs">
-          <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-            Total Jenis Bahan
-          </p>
-          <p className="mt-1 text-2xl font-extrabold text-stone-900">
-            {ingredients.length} <span className="text-sm font-normal text-stone-500">bahan</span>
-          </p>
-        </div>
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-              Stok Menipis
-            </p>
-            <AlertTriangle
-              className={`h-5 w-5 ${lowCount > 0 ? "text-red-500" : "text-stone-300"}`}
-            />
-          </div>
-          <p className={`mt-1 text-2xl font-extrabold ${lowCount > 0 ? "text-red-600" : "text-stone-900"}`}>
-            {lowCount} <span className="text-sm font-normal text-stone-500">bahan</span>
+      {/* Ringkasan */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="border border-brand-border bg-brand-card px-5 py-4">
+          <span className="block font-sans text-[8px] font-bold uppercase tracking-[0.28em] text-brand-text">
+            Jenis Bahan
+          </span>
+          <p className="mt-1.5 font-playfair text-2xl font-bold text-brand-dark">
+            {ingredients.length}
           </p>
         </div>
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs">
-          <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-            Total Bahan Terbeli
+        <div className="border border-brand-border bg-brand-card px-5 py-4">
+          <span className="block font-sans text-[8px] font-bold uppercase tracking-[0.28em] text-brand-text">
+            Stok Rendah
+          </span>
+          <p className="mt-1.5 font-playfair text-2xl font-bold text-brand-dark">
+            {lowCount}
           </p>
-          <p className="mt-1 text-2xl font-extrabold text-amber-700">
+        </div>
+        <div className="col-span-2 border border-brand-border bg-brand-card px-5 py-4 sm:col-span-1">
+          <span className="block font-sans text-[8px] font-bold uppercase tracking-[0.28em] text-brand-text">
+            Total Terbeli
+          </span>
+          <p className="mt-1.5 font-playfair text-2xl font-bold text-brand-dark">
             {totalPurchasedQty.toLocaleString("id-ID")}
           </p>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-stone-600">
-          Stok otomatis terpotong saat nota mencapai <strong>Selesai Produksi</strong>.
-        </p>
-        <button
-          onClick={() => openForm(null)}
-          disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-amber-700 disabled:opacity-60"
-        >
-          <Plus className="h-4 w-4" />
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari bahan..."
+          className="w-full border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-xs text-brand-dark outline-none transition-colors focus:border-brand-dark placeholder:text-brand-muted sm:max-w-xs"
+        />
+        <button onClick={() => openForm(null)} disabled={isPending} className={buttonPrimary}>
+          <Plus className="h-3.5 w-3.5" />
           Tambah Bahan
         </button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-stone-700">
-            <thead className="border-b border-stone-200 bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-500">
-              <tr>
-                <th className="px-6 py-4">Bahan</th>
-                <th className="px-6 py-4 text-right">Stok Saat Ini</th>
-                <th className="px-6 py-4 text-right">Ambang Alert</th>
-                <th className="px-6 py-4 text-right">Total Dibeli</th>
-                <th className="px-6 py-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {ingredients.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-stone-500">
-                    Belum ada bahan baku. Klik "Tambah Bahan" untuk mulai.
-                  </td>
-                </tr>
-              ) : (
-                ingredients.map((ing) => (
-                  <tr key={ing.id} className="hover:bg-stone-50/70">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-stone-900">{ing.name}</div>
-                      <div className="text-xs text-stone-500">Satuan: {ing.unit}</div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          ing.isLow
-                            ? "bg-red-100 text-red-700"
-                            : "bg-emerald-100 text-emerald-700"
-                        }`}
-                      >
-                        {ing.stockQty.toLocaleString("id-ID")} {ing.unit}
-                        {ing.isLow ? " ⚠" : ""}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right text-stone-600">
-                      {ing.minStockQty.toLocaleString("id-ID")} {ing.unit}
-                    </td>
-                    <td className="px-6 py-4 text-right text-stone-600">
-                      {ing.totalPurchased.toLocaleString("id-ID")} {ing.unit}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => openPurchase(ing)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
-                          title="Catat pembelian (stock-in)"
-                        >
-                          <ShoppingCart className="h-3.5 w-3.5" />
-                          Beli
-                        </button>
-                        <button
-                          onClick={() => openAdjust(ing)}
-                          className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50"
-                          title="Koreksi stok manual"
-                        >
-                          <Scale className="h-3.5 w-3.5" />
-                          Koreksi
-                        </button>
-                        <button
-                          onClick={() => setModal({ kind: "history", ingredient: ing })}
-                          className="rounded-xl border border-stone-200 bg-white p-2 text-stone-500 hover:bg-stone-50"
-                          title="Riwayat pembelian"
-                        >
-                          <History className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => openForm(ing)}
-                          className="rounded-xl border border-stone-200 bg-white p-2 text-stone-500 hover:bg-stone-50"
-                          title="Edit bahan"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => submitDelete(ing)}
-                          className="rounded-xl border border-red-100 bg-white p-2 text-red-500 hover:bg-red-50"
-                          title="Hapus bahan"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Card grid */}
+      {ingredients.length === 0 ? (
+        <p className="border border-dashed border-brand-border bg-brand-card px-6 py-14 text-center font-sans text-[10px] uppercase tracking-[0.22em] text-brand-muted">
+          Belum ada bahan baku — mulai dengan "Tambah Bahan"
+        </p>
+      ) : filtered.length === 0 ? (
+        <p className="border border-dashed border-brand-border bg-brand-card px-6 py-14 text-center font-sans text-[10px] uppercase tracking-[0.22em] text-brand-muted">
+          Tidak ada bahan yang cocok dengan "{search}"
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((ing) => (
+            <div
+              key={ing.id}
+              className={`flex flex-col border bg-brand-bg ${
+                ing.isLow ? "border-brand-dark" : "border-brand-border"
+              }`}
+            >
+              {/* Card head */}
+              <div className="flex items-start justify-between gap-3 border-b border-brand-border px-5 py-4">
+                <div className="min-w-0">
+                  <h3 className="truncate font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
+                    {ing.name}
+                  </h3>
+                  <span className="mt-0.5 block font-sans text-[9px] uppercase tracking-[0.2em] text-brand-muted">
+                    Satuan {ing.unit}
+                  </span>
+                </div>
+                <span
+                  className={`shrink-0 border px-2 py-1 font-sans text-[8px] font-bold uppercase tracking-[0.2em] ${
+                    ing.isLow
+                      ? "border-brand-dark bg-brand-dark text-brand-bg"
+                      : "border-brand-border bg-brand-card text-brand-text"
+                  }`}
+                >
+                  {ing.isLow ? "Rendah" : "Aman"}
+                </span>
+              </div>
+
+              {/* Stok utama */}
+              <div className="border-b border-brand-border/70 px-5 py-4">
+                <span className="block font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
+                  Stok Saat Ini
+                </span>
+                <p className="mt-1 font-playfair text-3xl font-bold text-brand-dark">
+                  {ing.stockQty.toLocaleString("id-ID")}
+                  <span className="ml-2 font-sans text-xs font-light normal-case tracking-normal text-brand-text">
+                    {ing.unit}
+                  </span>
+                </p>
+                <p className="mt-1 font-sans text-[10px] text-brand-text">
+                  Ambang {ing.minStockQty.toLocaleString("id-ID")} {ing.unit} · Terbeli{" "}
+                  {ing.totalPurchased.toLocaleString("id-ID")} {ing.unit}
+                </p>
+              </div>
+
+              {/* Aksi */}
+              <div className="mt-auto grid grid-cols-2 gap-2 px-5 py-4">
+                <button
+                  onClick={() => openPurchase(ing)}
+                  disabled={isPending}
+                  className={`${buttonPrimary} col-span-2`}
+                >
+                  <ShoppingCart className="h-3.5 w-3.5" />
+                  Catat Pembelian
+                </button>
+                <button onClick={() => openAdjust(ing)} className={buttonGhost}>
+                  <Scale className="h-3.5 w-3.5" />
+                  Koreksi
+                </button>
+                <button
+                  onClick={() => setModal({ kind: "history", ingredient: ing })}
+                  className={buttonGhost}
+                >
+                  <History className="h-3.5 w-3.5" />
+                  Riwayat
+                </button>
+                <button onClick={() => openForm(ing)} className={buttonGhost}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => submitDelete(ing)}
+                  className="inline-flex items-center justify-center gap-2 border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-muted transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Hapus
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
       {/* Modals */}
       {modal.kind !== "none" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-stone-900">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-brand-dark/40 backdrop-blur-xs sm:items-center sm:p-4">
+          <div className="max-h-[92vh] w-full max-w-md overflow-y-auto border border-brand-border bg-brand-bg shadow-2xl sm:max-h-[90vh]">
+            <div className="flex items-center justify-between border-b border-brand-border px-6 py-4">
+              <h3 className="font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
                 {modal.kind === "form" && (modal.editing ? "Edit Bahan" : "Tambah Bahan")}
-                {modal.kind === "purchase" && `Pembelian: ${modal.ingredient.name}`}
-                {modal.kind === "adjust" && `Koreksi Stok: ${modal.ingredient.name}`}
-                {modal.kind === "history" && `Riwayat: ${modal.ingredient.name}`}
+                {modal.kind === "purchase" && `Pembelian · ${modal.ingredient.name}`}
+                {modal.kind === "adjust" && `Koreksi Stok · ${modal.ingredient.name}`}
+                {modal.kind === "history" && `Riwayat · ${modal.ingredient.name}`}
               </h3>
               <button
                 onClick={() => setModal({ kind: "none" })}
-                className="rounded-lg p-2 text-stone-400 hover:bg-stone-100"
+                className="p-1.5 text-brand-text transition-colors hover:text-brand-dark"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {error && (
-              <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
+            <div className="px-6 py-5">
+              {error && (
+                <div className="mb-4 border border-brand-dark bg-brand-card px-4 py-3 font-sans text-[11px] text-brand-dark">
+                  {error}
+                </div>
+              )}
 
-            {modal.kind === "form" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    Nama Bahan
-                  </label>
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="Tepung Kentang"
-                    className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+              {modal.kind === "form" && (
+                <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                      Satuan
-                    </label>
+                    <label className={fieldLabel}>Nama Bahan</label>
                     <input
-                      value={form.unit}
-                      onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                      placeholder="gram / ml / pcs"
-                      className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      placeholder="Tepung Kentang"
+                      className={fieldInput}
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={fieldLabel}>Satuan</label>
+                      <input
+                        value={form.unit}
+                        onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                        placeholder="gram / ml / pcs"
+                        className={fieldInput}
+                      />
+                    </div>
+                    <div>
+                      <label className={fieldLabel}>Ambang Rendah</label>
+                      <input
+                        type="number"
+                        value={form.minStockQty}
+                        onChange={(e) => setForm({ ...form, minStockQty: e.target.value })}
+                        className={fieldInput}
+                      />
+                    </div>
+                  </div>
                   <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                      Ambang Stok Rendah
-                    </label>
+                    <label className={fieldLabel}>Catatan (opsional)</label>
                     <input
-                      type="number"
-                      value={form.minStockQty}
-                      onChange={(e) => setForm({ ...form, minStockQty: e.target.value })}
-                      className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
+                      value={form.note}
+                      onChange={(e) => setForm({ ...form, note: e.target.value })}
+                      className={fieldInput}
                     />
                   </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button onClick={() => setModal({ kind: "none" })} className={buttonGhost}>
+                      Batal
+                    </button>
+                    <button onClick={submitForm} disabled={isPending} className={buttonPrimary}>
+                      {modal.editing ? "Simpan" : "Tambah"}
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    Catatan (opsional)
-                  </label>
-                  <input
-                    value={form.note}
-                    onChange={(e) => setForm({ ...form, note: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    onClick={() => setModal({ kind: "none" })}
-                    className="rounded-xl bg-stone-100 px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-200"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={submitForm}
-                    disabled={isPending}
-                    className="rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
-                  >
-                    {modal.editing ? "Simpan" : "Tambah"}
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
 
-            {modal.kind === "purchase" && (
-              <div className="space-y-4">
-                <p className="text-sm text-stone-600">
-                  Stok saat ini:{" "}
-                  <strong>
-                    {modal.ingredient.stockQty.toLocaleString("id-ID")} {modal.ingredient.unit}
-                  </strong>
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                      Jumlah ({modal.ingredient.unit})
-                    </label>
-                    <input
-                      type="number"
-                      value={purchaseQty}
-                      onChange={(e) => setPurchaseQty(e.target.value)}
-                      placeholder="1000"
-                      className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                      Harga per {modal.ingredient.unit} (Rp)
-                    </label>
-                    <input
-                      type="number"
-                      value={purchaseCost}
-                      onChange={(e) => setPurchaseCost(e.target.value)}
-                      placeholder="15000"
-                      className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-                {Number(purchaseCost) > 0 && (
-                  <p className="text-sm text-stone-600">
-                    Total:{" "}
-                    <strong className="text-amber-700">
-                      {formatRupiah(Math.round((Number(purchaseQty) || 0) * Number(purchaseCost)))}
+              {modal.kind === "purchase" && (
+                <div className="space-y-4">
+                  <p className="font-sans text-[11px] leading-relaxed text-brand-text">
+                    Stok saat ini{" "}
+                    <strong className="text-brand-dark">
+                      {modal.ingredient.stockQty.toLocaleString("id-ID")} {modal.ingredient.unit}
                     </strong>
                   </p>
-                )}
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    Supplier / Toko (opsional)
-                  </label>
-                  <input
-                    value={purchaseSupplier}
-                    onChange={(e) => setPurchaseSupplier(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    onClick={() => setModal({ kind: "none" })}
-                    className="rounded-xl bg-stone-100 px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-200"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={submitPurchase}
-                    disabled={isPending}
-                    className="rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
-                  >
-                    Catat Pembelian
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {modal.kind === "adjust" && (
-              <div className="space-y-4">
-                <p className="text-sm text-stone-600">
-                  Gunakan plus untuk menambah atau minus untuk mengurangi. Setiap koreksi tercatat di riwayat pergerakan.
-                </p>
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    Koreksi ({modal.ingredient.unit})
-                  </label>
-                  <input
-                    type="number"
-                    value={adjustQty}
-                    onChange={(e) => setAdjustQty(e.target.value)}
-                    placeholder="misal: -100 atau 250"
-                    className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    Alasan (opsional)
-                  </label>
-                  <input
-                    value={adjustNote}
-                    onChange={(e) => setAdjustNote(e.target.value)}
-                    placeholder="misal: stok opname"
-                    className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm focus:border-amber-600 focus:outline-hidden"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    onClick={() => setModal({ kind: "none" })}
-                    className="rounded-xl bg-stone-100 px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-200"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={submitAdjust}
-                    disabled={isPending}
-                    className="rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
-                  >
-                    Simpan Koreksi
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {modal.kind === "history" && (
-              <div className="space-y-3">
-                {modal.ingredient.recentPurchases.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-stone-500">
-                    Belum ada pembelian tercatat.
-                  </p>
-                ) : (
-                  <div className="divide-y divide-stone-100 overflow-hidden rounded-xl border border-stone-200">
-                    {modal.ingredient.recentPurchases.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between p-3 text-sm">
-                        <div>
-                          <div className="font-semibold text-stone-900">
-                            +{p.qty.toLocaleString("id-ID")} {modal.ingredient.unit}
-                          </div>
-                          <div className="text-xs text-stone-500">
-                            {new Date(p.purchasedAt).toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                            {p.supplier ? ` · ${p.supplier}` : ""}
-                          </div>
-                        </div>
-                        <div className="text-right font-bold text-amber-700">
-                          {p.totalCost > 0 ? formatRupiah(p.totalCost) : "—"}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={fieldLabel}>Jumlah ({modal.ingredient.unit})</label>
+                      <input
+                        type="number"
+                        value={purchaseQty}
+                        onChange={(e) => setPurchaseQty(e.target.value)}
+                        placeholder="1000"
+                        className={fieldInput}
+                      />
+                    </div>
+                    <div>
+                      <label className={fieldLabel}>
+                        Harga per {modal.ingredient.unit} (Rp)
+                      </label>
+                      <input
+                        type="number"
+                        value={purchaseCost}
+                        onChange={(e) => setPurchaseCost(e.target.value)}
+                        placeholder="15000"
+                        className={fieldInput}
+                      />
+                    </div>
                   </div>
-                )}
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => setModal({ kind: "none" })}
-                    className="rounded-xl bg-stone-100 px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-200"
-                  >
-                    Tutup
-                  </button>
+                  {Number(purchaseCost) > 0 && (
+                    <p className="font-sans text-[11px] text-brand-text">
+                      Total:{" "}
+                      <strong className="text-brand-dark">
+                        {formatRupiah(Math.round((Number(purchaseQty) || 0) * Number(purchaseCost)))}
+                      </strong>
+                    </p>
+                  )}
+                  <div>
+                    <label className={fieldLabel}>Supplier / Toko (opsional)</label>
+                    <input
+                      value={purchaseSupplier}
+                      onChange={(e) => setPurchaseSupplier(e.target.value)}
+                      className={fieldInput}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button onClick={() => setModal({ kind: "none" })} className={buttonGhost}>
+                      Batal
+                    </button>
+                    <button
+                      onClick={submitPurchase}
+                      disabled={isPending}
+                      className={buttonPrimary}
+                    >
+                      Catat
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {modal.kind === "adjust" && (
+                <div className="space-y-4">
+                  <p className="font-sans text-[11px] leading-relaxed text-brand-text">
+                    Plus untuk menambah, minus untuk mengurangi. Setiap koreksi tercatat di
+                    riwayat pergerakan.
+                  </p>
+                  <div>
+                    <label className={fieldLabel}>Koreksi ({modal.ingredient.unit})</label>
+                    <input
+                      type="number"
+                      value={adjustQty}
+                      onChange={(e) => setAdjustQty(e.target.value)}
+                      placeholder="-100 atau 250"
+                      className={fieldInput}
+                    />
+                  </div>
+                  <div>
+                    <label className={fieldLabel}>Alasan (opsional)</label>
+                    <input
+                      value={adjustNote}
+                      onChange={(e) => setAdjustNote(e.target.value)}
+                      placeholder="stok opname"
+                      className={fieldInput}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button onClick={() => setModal({ kind: "none" })} className={buttonGhost}>
+                      Batal
+                    </button>
+                    <button
+                      onClick={submitAdjust}
+                      disabled={isPending}
+                      className={buttonPrimary}
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {modal.kind === "history" && (
+                <div className="space-y-3">
+                  {modal.ingredient.recentPurchases.length === 0 ? (
+                    <p className="py-6 text-center font-sans text-[10px] uppercase tracking-[0.22em] text-brand-muted">
+                      Belum ada pembelian tercatat
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-brand-border border border-brand-border">
+                      {modal.ingredient.recentPurchases.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between px-4 py-3">
+                          <div>
+                            <span className="block font-sans text-[11px] font-semibold text-brand-dark">
+                              +{p.qty.toLocaleString("id-ID")} {modal.ingredient.unit}
+                            </span>
+                            <span className="mt-0.5 block font-sans text-[9px] uppercase tracking-[0.16em] text-brand-text">
+                              {new Date(p.purchasedAt).toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                              {p.supplier ? ` · ${p.supplier}` : ""}
+                            </span>
+                          </div>
+                          <span className="font-mono text-[11px] font-semibold text-brand-dark">
+                            {p.totalCost > 0 ? formatRupiah(p.totalCost) : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex justify-end pt-1">
+                    <button onClick={() => setModal({ kind: "none" })} className={buttonGhost}>
+                      Tutup
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

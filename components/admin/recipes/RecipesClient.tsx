@@ -23,43 +23,56 @@ type AddFormState = {
   qtyPerUnit: string;
 } | null;
 
+const fieldLabel =
+  "mb-1.5 block font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text";
+
+const fieldInput =
+  "mt-1 w-full border border-brand-border bg-brand-bg px-3 py-2.5 font-sans text-xs text-brand-dark outline-none transition-colors focus:border-brand-dark placeholder:text-brand-muted";
+
+const buttonPrimary =
+  "inline-flex items-center justify-center gap-1.5 border border-brand-dark bg-brand-dark px-3.5 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:opacity-50";
+
+const buttonGhost =
+  "inline-flex items-center justify-center gap-1.5 border border-brand-border bg-brand-bg px-3.5 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50";
+
 function RecipeRows({
   rows,
-  unitLabel,
   onDelete,
   isPending,
 }: {
   rows: RecipeRow[];
-  unitLabel?: string;
   onDelete: (id: string) => void;
   isPending: boolean;
 }) {
   if (rows.length === 0) {
     return (
-      <p className="px-4 py-3 text-xs italic text-stone-400">
-        Belum ada bahan di resep ini.
-        {unitLabel ? ` ${unitLabel}` : ""}
+      <p className="px-4 py-4 font-sans text-[10px] uppercase tracking-[0.18em] text-brand-muted">
+        Belum ada bahan di resep ini
       </p>
     );
   }
 
   return (
-    <div className="divide-y divide-stone-100">
+    <div className="divide-y divide-brand-border/70">
       {rows.map((row) => (
-        <div key={row.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-          <div className="flex items-center gap-2">
-            <Cookie className="h-3.5 w-3.5 text-stone-300" />
-            <span className="font-medium text-stone-800">{row.ingredientName}</span>
+        <div key={row.id} className="flex items-center justify-between px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Cookie className="h-3.5 w-3.5 shrink-0 text-brand-muted" />
+            <span className="truncate font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-dark">
+              {row.ingredientName}
+            </span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="font-bold text-amber-700">
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="font-mono text-[11px] font-semibold text-brand-dark">
               {row.qtyPerUnit.toLocaleString("id-ID")} {row.unit}
-              <span className="ml-1 font-normal text-stone-400">/ pcs</span>
+              <span className="ml-1 font-sans text-[9px] font-light normal-case tracking-normal text-brand-muted">
+                / pcs
+              </span>
             </span>
             <button
               onClick={() => onDelete(row.id)}
               disabled={isPending}
-              className="rounded-lg border border-red-100 bg-white p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-50"
+              className="border border-brand-border bg-brand-bg p-1.5 text-brand-muted transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50"
               title="Hapus dari resep"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -127,7 +140,7 @@ export function RecipesClient({
 
   if (ingredients.length === 0) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
+      <div className="border border-brand-dark bg-brand-card p-6 font-sans text-[11px] leading-relaxed text-brand-dark">
         Tambahkan bahan baku terlebih dahulu di halaman{" "}
         <a href="/admin/ingredients" className="font-bold underline">
           Bahan Baku
@@ -140,12 +153,14 @@ export function RecipesClient({
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="border border-brand-dark bg-brand-card px-4 py-3 font-sans text-[11px] text-brand-dark">
+          {error}
+        </div>
       )}
 
       {products.length === 0 ? (
-        <p className="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500">
-          Belum ada produk di katalog.
+        <p className="border border-dashed border-brand-border bg-brand-card px-6 py-14 text-center font-sans text-[10px] uppercase tracking-[0.22em] text-brand-muted">
+          Belum ada produk di katalog
         </p>
       ) : (
         products.map((product) => {
@@ -153,26 +168,25 @@ export function RecipesClient({
           const sectionKeyBase = `base:${product.productId}`;
 
           return (
-            <div
-              key={product.productId}
-              className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs"
-            >
+            <div key={product.productId} className="border border-brand-border bg-brand-bg">
               {/* Product header */}
               <button
                 onClick={() => toggle(product.productId)}
-                className="flex w-full items-center justify-between bg-stone-50 px-6 py-4 text-left hover:bg-stone-100/70"
+                className="flex w-full items-center justify-between bg-brand-card px-5 py-4 text-left transition-colors hover:bg-brand-border/40 sm:px-6"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-stone-400">
+                  <span className="text-brand-muted">
                     {isOpen ? (
-                      <ChevronDown className="h-5 w-5" />
+                      <ChevronDown className="h-4 w-4" />
                     ) : (
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-4 w-4" />
                     )}
                   </span>
-                  <div>
-                    <div className="font-bold text-stone-900">{product.productName}</div>
-                    <div className="text-xs text-stone-500">
+                  <div className="min-w-0">
+                    <div className="truncate font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
+                      {product.productName}
+                    </div>
+                    <div className="mt-0.5 font-sans text-[9px] uppercase tracking-[0.2em] text-brand-text">
                       {product.base.length} bahan base · {product.variants.length} varian
                     </div>
                   </div>
@@ -180,13 +194,13 @@ export function RecipesClient({
               </button>
 
               {isOpen && (
-                <div className="space-y-5 px-6 py-5">
+                <div className="space-y-6 px-5 py-5 sm:px-6">
                   {/* BASE recipe */}
-                  <div className="overflow-hidden rounded-xl border border-amber-100">
-                    <div className="flex items-center justify-between border-b border-amber-100 bg-amber-50/60 px-4 py-2.5">
-                      <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
-                        <Cookie className="h-4 w-4" />
-                        Base Recipe (semua varian)
+                  <div className="border border-brand-border">
+                    <div className="flex items-center justify-between gap-3 border-b border-brand-border bg-brand-card px-4 py-3">
+                      <span className="flex items-center gap-2 font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-dark">
+                        <Cookie className="h-3.5 w-3.5" />
+                        Base Recipe · Semua Varian
                       </span>
                       <button
                         onClick={() =>
@@ -200,7 +214,9 @@ export function RecipesClient({
                                 },
                           )
                         }
-                        className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+                        className={
+                          addForm?.sectionKey === sectionKeyBase ? buttonGhost : buttonPrimary
+                        }
                       >
                         {addForm?.sectionKey === sectionKeyBase ? (
                           <>
@@ -208,24 +224,22 @@ export function RecipesClient({
                           </>
                         ) : (
                           <>
-                            <Plus className="h-3 w-3" /> Tambah Bahan
+                            <Plus className="h-3 w-3" /> Tambah
                           </>
                         )}
                       </button>
                     </div>
 
                     {addForm?.sectionKey === sectionKeyBase && (
-                      <div className="flex flex-wrap items-end gap-3 border-b border-amber-100 bg-amber-50/30 px-4 py-3">
-                        <div className="min-w-48 flex-1">
-                          <label className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
-                            Bahan
-                          </label>
+                      <div className="flex flex-col gap-3 border-b border-brand-border bg-brand-card/60 px-4 py-4 sm:flex-row sm:items-end">
+                        <div className="flex-1">
+                          <label className={fieldLabel}>Bahan</label>
                           <select
                             value={addForm.ingredientId}
                             onChange={(e) =>
                               setAddForm({ ...addForm, ingredientId: e.target.value })
                             }
-                            className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-sm focus:border-amber-600 focus:outline-hidden"
+                            className={fieldInput}
                           >
                             <option value="">— pilih bahan —</option>
                             {ingredients.map((ing) => (
@@ -235,10 +249,8 @@ export function RecipesClient({
                             ))}
                           </select>
                         </div>
-                        <div className="w-32">
-                          <label className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
-                            Takaran / pcs
-                          </label>
+                        <div className="sm:w-36">
+                          <label className={fieldLabel}>Takaran / pcs</label>
                           <input
                             type="number"
                             step="any"
@@ -247,13 +259,13 @@ export function RecipesClient({
                               setAddForm({ ...addForm, qtyPerUnit: e.target.value })
                             }
                             placeholder="50"
-                            className="mt-1 w-full rounded-lg border border-stone-200 px-2.5 py-2 text-sm focus:border-amber-600 focus:outline-hidden"
+                            className={fieldInput}
                           />
                         </div>
                         <button
                           onClick={handleSaveRow}
                           disabled={isPending || !addForm.ingredientId}
-                          className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+                          className={buttonPrimary}
                         >
                           Simpan
                         </button>
@@ -269,8 +281,8 @@ export function RecipesClient({
 
                   {/* TOPPING per variant */}
                   <div className="space-y-3">
-                    <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-500">
-                      <Layers className="h-4 w-4" />
+                    <span className="flex items-center gap-2 font-sans text-[8px] font-bold uppercase tracking-[0.24em] text-brand-text">
+                      <Layers className="h-3.5 w-3.5" />
                       Topping per Varian
                     </span>
 
@@ -278,12 +290,9 @@ export function RecipesClient({
                       const sectionKey = `topping:${variant.variantId}`;
 
                       return (
-                        <div
-                          key={variant.variantId}
-                          className="overflow-hidden rounded-xl border border-stone-200"
-                        >
-                          <div className="flex items-center justify-between border-b border-stone-100 bg-stone-50 px-4 py-2.5">
-                            <span className="text-sm font-semibold text-stone-800">
+                        <div key={variant.variantId} className="border border-brand-border">
+                          <div className="flex items-center justify-between gap-3 border-b border-brand-border bg-brand-card px-4 py-3">
+                            <span className="truncate font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-dark">
                               {variant.variantName}
                             </span>
                             <button
@@ -298,7 +307,9 @@ export function RecipesClient({
                                       },
                                 )
                               }
-                              className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+                              className={
+                                addForm?.sectionKey === sectionKey ? buttonGhost : buttonGhost
+                              }
                             >
                               {addForm?.sectionKey === sectionKey ? (
                                 <>
@@ -313,17 +324,15 @@ export function RecipesClient({
                           </div>
 
                           {addForm?.sectionKey === sectionKey && (
-                            <div className="flex flex-wrap items-end gap-3 border-b border-stone-100 bg-stone-50/50 px-4 py-3">
-                              <div className="min-w-48 flex-1">
-                                <label className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
-                                  Bahan
-                                </label>
+                            <div className="flex flex-col gap-3 border-b border-brand-border bg-brand-card/60 px-4 py-4 sm:flex-row sm:items-end">
+                              <div className="flex-1">
+                                <label className={fieldLabel}>Bahan</label>
                                 <select
                                   value={addForm.ingredientId}
                                   onChange={(e) =>
                                     setAddForm({ ...addForm, ingredientId: e.target.value })
                                   }
-                                  className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-sm focus:border-amber-600 focus:outline-hidden"
+                                  className={fieldInput}
                                 >
                                   <option value="">— pilih bahan —</option>
                                   {ingredients.map((ing) => (
@@ -333,10 +342,8 @@ export function RecipesClient({
                                   ))}
                                 </select>
                               </div>
-                              <div className="w-32">
-                                <label className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
-                                  Takaran / pcs
-                                </label>
+                              <div className="sm:w-36">
+                                <label className={fieldLabel}>Takaran / pcs</label>
                                 <input
                                   type="number"
                                   step="any"
@@ -345,13 +352,13 @@ export function RecipesClient({
                                     setAddForm({ ...addForm, qtyPerUnit: e.target.value })
                                   }
                                   placeholder="15"
-                                  className="mt-1 w-full rounded-lg border border-stone-200 px-2.5 py-2 text-sm focus:border-amber-600 focus:outline-hidden"
+                                  className={fieldInput}
                                 />
                               </div>
                               <button
                                 onClick={handleSaveRow}
                                 disabled={isPending || !addForm.ingredientId}
-                                className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+                                className={buttonPrimary}
                               >
                                 Simpan
                               </button>
