@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Settings,
   ShoppingBag,
+  Users,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -48,6 +49,11 @@ export const adminNav: AdminNavGroup[] = [
         label: "Pesanan",
         href: "/admin/orders",
         icon: ShoppingBag,
+      },
+      {
+        label: "Pelanggan",
+        href: "/admin/customers",
+        icon: Users,
       },
       {
         label: "Rekap Pesanan",
