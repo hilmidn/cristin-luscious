@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import type { OrderStatus } from "@/lib/order-types";
 import { getPrisma } from "@/lib/prisma";
+import { deductIngredientsForOrder } from "@/lib/inventory";
 import {
   PRODUCTION_STAGES,
   type ProductionStage,
@@ -30,6 +31,8 @@ function revalidateProduction() {
   revalidatePath("/admin/orders");
   revalidatePath("/admin/orders/recap");
   revalidatePath("/admin/production");
+  revalidatePath("/admin/ingredients");
+  revalidatePath("/admin/recipes");
 }
 
 /**
@@ -158,6 +161,13 @@ export async function setProductionProductStage(
           },
           data: { status: "SELESAI_PRODUKSI" },
         });
+
+        // Potong stok bahan baku di transaksi yang sama (atomic dengan
+        // perubahan status). Idempotent per nota — produksi yang dibuka
+        // ulang lalu selesai lagi tidak memotong stok dua kali.
+        for (const orderId of toSelesaiProduksi) {
+          await deductIngredientsForOrder(tx, orderId);
+        }
       }
 
       if (toDiproses.length > 0) {
