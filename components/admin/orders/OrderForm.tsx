@@ -38,6 +38,7 @@ type OrderFormProps = {
   catalog: OrderableProduct[];
   sources: OrderSourceOption[];
   customers: OrderCustomerOption[];
+  initialCustomer?: { name: string; phone: string; address: string };
 };
 
 type CustomerSuggestion = SuggestionOption & { customer: OrderCustomerOption };
@@ -151,14 +152,19 @@ export default function OrderForm({
   catalog,
   sources,
   customers,
+  initialCustomer,
 }: OrderFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [customerName, setCustomerName] = useState(order?.customerName ?? "");
-  const [phone, setPhone] = useState(order?.phone ?? "");
-  const [address, setAddress] = useState(order?.address ?? "");
+  const [customerName, setCustomerName] = useState(
+    order?.customerName ?? initialCustomer?.name ?? "",
+  );
+  const [phone, setPhone] = useState(order?.phone ?? initialCustomer?.phone ?? "");
+  const [address, setAddress] = useState(
+    order?.address ?? initialCustomer?.address ?? "",
+  );
   const [scheduledDate, setScheduledDate] = useState(
     toDateInputValue(order?.scheduledAt),
   );
