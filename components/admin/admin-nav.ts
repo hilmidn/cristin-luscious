@@ -1,9 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarDays,
+  ChefHat,
   Croissant,
   Layers,
   LayoutDashboard,
+  Package,
   Settings,
   ShoppingBag,
 } from "lucide-react";
@@ -38,6 +40,21 @@ export const adminNav: AdminNavGroup[] = [
         label: "Produk",
         href: "/admin/products",
         icon: Croissant,
+      },
+    ],
+  },
+  {
+    title: "Inventori",
+    items: [
+      {
+        label: "Bahan Baku",
+        href: "/admin/ingredients",
+        icon: Package,
+      },
+      {
+        label: "Resep",
+        href: "/admin/recipes",
+        icon: ChefHat,
       },
     ],
   },
