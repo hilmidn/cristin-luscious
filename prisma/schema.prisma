@@ -211,6 +211,8 @@ model RecipeItem {
   qtyPerUnit   Float // takaran per 1 pcs produk
   note         String?
 
+  @@unique([productId, ingredientId])
+  @@unique([variantId, ingredientId])
   @@index([productId])
   @@index([variantId])
   @@index([ingredientId])
