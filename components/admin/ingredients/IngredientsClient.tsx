@@ -42,13 +42,13 @@ type NoteRow = {
   key: string;
   ingredientId: string;
   qty: string;
-  unitCost: string;
+  totalPrice: string;
 };
 
 let noteRowSeq = 0;
 function newNoteRow(): NoteRow {
   noteRowSeq += 1;
-  return { key: `row-${noteRowSeq}`, ingredientId: "", qty: "", unitCost: "" };
+  return { key: `row-${noteRowSeq}`, ingredientId: "", qty: "", totalPrice: "" };
 }
 
 const fieldLabel =
@@ -106,7 +106,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
   const noteTotal = useMemo(
     () =>
       noteRows.reduce(
-        (acc, row) => acc + (Number(row.qty) || 0) * (Number(row.unitCost) || 0),
+        (acc, row) => acc + (Number(row.totalPrice) || 0),
         0,
       ),
     [noteRows],
@@ -187,11 +187,12 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
 
   const submitPurchaseNote = () => {
     const items = noteRows
-      .filter((row) => row.ingredientId && Number(row.qty) > 0)
+      .filter((row) => row.ingredientId && Number(row.qty) > 0 && Number(row.totalPrice) > 0)
       .map((row) => ({
         ingredientId: row.ingredientId,
         qty: Number(row.qty) || 0,
-        unitCost: Math.round(Number(row.unitCost) || 0),
+        // Harga per unit dihitung dari total yang dibayar ÷ jumlah.
+        unitCost: Math.round(Number(row.totalPrice) / Number(row.qty)) || 0,
       }));
 
     startTransition(async () => {
@@ -597,16 +598,16 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
                                 ),
                               )
                             }
-                            placeholder="Jumlah"
+                            placeholder={`Jumlah`}
                             className={fieldInput}
                           />
                           <input
                             type="number"
-                            value={row.unitCost}
+                            value={row.totalPrice}
                             onChange={(e) =>
                               setNoteRows(
                                 noteRows.map((r) =>
-                                  r.key === row.key ? { ...r, unitCost: e.target.value } : r,
+                                  r.key === row.key ? { ...r, totalPrice: e.target.value } : r,
                                 ),
                               )
                             }
@@ -614,6 +615,16 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
                             className={fieldInput}
                           />
                         </div>
+                        {Number(row.qty) > 0 && Number(row.totalPrice) > 0 && (
+                          <p className="font-sans text-[9px] uppercase tracking-[0.14em] text-brand-text">
+                            ≈ Rp
+                            {Math.round(Number(row.totalPrice) / Number(row.qty)).toLocaleString(
+                              "id-ID",
+                            )}{" "}
+                            /{" "}
+                            {ingredients.find((i) => i.id === row.ingredientId)?.unit ?? "unit"}
+                          </p>
+                        )}
                       </div>
                     ))}
                     <button
