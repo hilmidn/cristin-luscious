@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { formatRupiah } from "@/lib/order-types";
 import type { IngredientRow } from "@/lib/inventory-types";
@@ -12,8 +13,8 @@ import {
   updateIngredientAction,
 } from "@/app/admin/(panel)/ingredients/actions";
 import {
-  ChevronDown,
   History,
+  MoreVertical,
   Pencil,
   Plus,
   ReceiptText,
@@ -77,6 +78,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
 
   // Nota pembelian (multi bahan)
   const [noteRows, setNoteRows] = useState<NoteRow[]>([]);
@@ -109,6 +111,20 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
       ),
     [noteRows],
   );
+
+  // Popover tutup saat halaman discroll/di-resize (posisi fixed jadi salah).
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    const close = () => setOpenMenuId(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [openMenuId]);
 
   const openForm = (editing: IngredientRow | null) => {
     setError(null);
@@ -311,19 +327,24 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
                 return (
                   <tr
                     key={ing.id}
-                    className="border-b border-brand-border/70 transition-colors last:border-b-0 hover:bg-brand-card/60"
+                    className={`border-b border-brand-border/70 transition-colors last:border-b-0 ${
+                      ing.isLow ? "bg-red-50/60" : "bg-brand-bg"
+                    } hover:bg-brand-card/60`}
                   >
                     <td className="px-5 py-3.5">
-                      <span className="font-semibold uppercase tracking-[0.06em]">
+                      <span
+                        className={`font-semibold uppercase tracking-[0.06em] ${
+                          ing.isLow ? "text-red-600" : "text-brand-dark"
+                        }`}
+                      >
                         {ing.name}
                       </span>
-                      {ing.isLow && (
-                        <span className="ml-2 border border-brand-dark bg-brand-dark px-1.5 py-0.5 font-sans text-[8px] font-bold uppercase tracking-[0.2em] text-brand-bg">
-                          Rendah
-                        </span>
-                      )}
                     </td>
-                    <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[11px]">
+                    <td
+                      className={`whitespace-nowrap px-5 py-3.5 font-mono text-[11px] ${
+                        ing.isLow ? "font-semibold text-red-600" : ""
+                      }`}
+                    >
                       {ing.stockQty.toLocaleString("id-ID")}{" "}
                       <span className="font-sans text-[10px] text-brand-text">{ing.unit}</span>
                     </td>
@@ -334,75 +355,21 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
                     <td className="max-w-[240px] truncate px-5 py-3.5 text-[11px] text-brand-text">
                       {ing.note || "—"}
                     </td>
-                    <td className="relative px-5 py-3.5 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       <button
-                        onClick={() => setOpenMenuId(menuOpen ? null : ing.id)}
-                        className="inline-flex items-center gap-1.5 border border-brand-border bg-brand-bg px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark"
+                        onClick={(event) => {
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          setMenuPos({
+                            top: rect.bottom + 6,
+                            right: window.innerWidth - rect.right,
+                          });
+                          setOpenMenuId(menuOpen ? null : ing.id);
+                        }}
+                        className="inline-flex items-center justify-center border border-brand-border bg-brand-bg p-2 text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark"
+                        title="Aksi"
                       >
-                        Aksi
-                        <ChevronDown
-                          className={`h-3 w-3 transition-transform duration-200 ${
-                            menuOpen ? "rotate-180" : ""
-                          }`}
-                        />
+                        <MoreVertical className="h-4 w-4" />
                       </button>
-
-                      {menuOpen && (
-                        <>
-                          {/* Click-outside */}
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setOpenMenuId(null)}
-                          />
-                          <div className="absolute right-5 top-full z-50 w-44 border border-brand-border bg-brand-bg shadow-lg">
-                            <button
-                              onClick={() => openPurchaseNote(ing)}
-                              disabled={isPending}
-                              className={menuItem}
-                            >
-                              <ShoppingCart className="h-3.5 w-3.5 text-brand-muted" />
-                              Catat Pembelian
-                            </button>
-                            <button
-                              onClick={() => openAdjust(ing)}
-                              disabled={isPending}
-                              className={menuItem}
-                            >
-                              <Scale className="h-3.5 w-3.5 text-brand-muted" />
-                              Koreksi Stok
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                setModal({ kind: "history", ingredient: ing });
-                              }}
-                              className={menuItem}
-                            >
-                              <History className="h-3.5 w-3.5 text-brand-muted" />
-                              Riwayat
-                            </button>
-                            <button
-                              onClick={() => openForm(ing)}
-                              disabled={isPending}
-                              className={menuItem}
-                            >
-                              <Pencil className="h-3.5 w-3.5 text-brand-muted" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                submitDelete(ing);
-                              }}
-                              disabled={isPending}
-                              className={`${menuItem} text-brand-muted hover:text-brand-dark`}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Hapus
-                            </button>
-                          </div>
-                        </>
-                      )}
                     </td>
                   </tr>
                 );
@@ -411,6 +378,72 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
           </table>
         </div>
       )}
+
+      {/* Popover aksi (portal ke body supaya keluar dari tabel) */}
+      {openMenuId &&
+        menuPos &&
+        (() => {
+          const active = ingredients.find((i) => i.id === openMenuId);
+          if (!active) return null;
+
+          return createPortal(
+            <>
+              {/* Click-outside */}
+              <div className="fixed inset-0 z-[55]" onClick={() => setOpenMenuId(null)} />
+              <div
+                className="fixed z-[60] w-44 border border-brand-border bg-brand-bg shadow-lg"
+                style={{ top: menuPos.top, right: menuPos.right }}
+              >
+                <button
+                  onClick={() => openPurchaseNote(active)}
+                  disabled={isPending}
+                  className={menuItem}
+                >
+                  <ShoppingCart className="h-3.5 w-3.5 text-brand-muted" />
+                  Catat Pembelian
+                </button>
+                <button
+                  onClick={() => openAdjust(active)}
+                  disabled={isPending}
+                  className={menuItem}
+                >
+                  <Scale className="h-3.5 w-3.5 text-brand-muted" />
+                  Koreksi Stok
+                </button>
+                <button
+                  onClick={() => {
+                    setOpenMenuId(null);
+                    setModal({ kind: "history", ingredient: active });
+                  }}
+                  className={menuItem}
+                >
+                  <History className="h-3.5 w-3.5 text-brand-muted" />
+                  Riwayat
+                </button>
+                <button
+                  onClick={() => openForm(active)}
+                  disabled={isPending}
+                  className={menuItem}
+                >
+                  <Pencil className="h-3.5 w-3.5 text-brand-muted" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    setOpenMenuId(null);
+                    submitDelete(active);
+                  }}
+                  disabled={isPending}
+                  className={`${menuItem} text-brand-muted hover:text-brand-dark`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Hapus
+                </button>
+              </div>
+            </>,
+            document.body,
+          );
+        })()}
 
       {/* Modals */}
       {modal.kind !== "none" && (
