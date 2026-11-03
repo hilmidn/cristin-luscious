@@ -370,26 +370,20 @@ export async function computeOrderNeeds(
 }
 
 /**
- * Potong stok bahan untuk satu nota yang mencapai SELESAI_PRODUKSI.
+ * Potong stok bahan untuk satu nota yang mencapai SELESAI_PRODUKSI/SELESAI.
  * WAJIB dipanggil dalam transaksi yang sama dengan perubahan status order.
  *
- * Idempotent: bila nota ini sudah pernah dipotong (ada movement
- * PRODUCTION_USE dengan orderId sama), fungsi skip — aman saat produksi
- * dibuka ulang lalu selesai lagi.
+ * Deduction berbasis DELTA: kebutuhan bahan terkini dikurangi yang sudah
+ * pernah terpotong untuk nota ini (movement PRODUCTION_USE). Dengan begitu
+ * fungsi idempotent (delta nol → tidak dipotong ulang) sekaligus menangkap
+ * item baru yang ditambahkan saat produksi dibuka ulang. Bahan fisik yang
+ * sudah keluar tidak pernah dikembalikan (delta negatif di-skip) — pakai
+ * koreksi stok manual bila perlu.
  */
 export async function deductIngredientsForOrder(
   tx: Prisma.TransactionClient,
   orderId: string,
 ): Promise<{ skipped: boolean; deductedCount: number }> {
-  const alreadyUsed = await tx.ingredientMovement.findFirst({
-    where: { orderId, type: "PRODUCTION_USE" },
-    select: { id: true },
-  });
-
-  if (alreadyUsed) {
-    return { skipped: true, deductedCount: 0 };
-  }
-
   const order = await tx.order.findUnique({
     where: { id: orderId },
     select: {
@@ -413,19 +407,40 @@ export async function deductIngredientsForOrder(
     tx,
   );
 
+  if (needs.size === 0) {
+    return { skipped: true, deductedCount: 0 };
+  }
+
+  // Yang sudah pernah keluar gudang atas nama nota ini (movement keluar = negatif).
+  const deductedRows = await tx.ingredientMovement.groupBy({
+    by: ["ingredientId"],
+    where: { orderId, type: "PRODUCTION_USE" },
+    _sum: { qty: true },
+  });
+
+  const alreadyOut = new Map<string, number>();
+  for (const row of deductedRows) {
+    alreadyOut.set(row.ingredientId, -(row._sum.qty ?? 0));
+  }
+
   let deductedCount = 0;
 
-  for (const [ingredientId, qty] of needs) {
+  for (const [ingredientId, need] of needs) {
+    const delta = need - (alreadyOut.get(ingredientId) ?? 0);
+    if (delta <= 0) {
+      continue;
+    }
+
     await tx.ingredient.update({
       where: { id: ingredientId },
-      data: { stockQty: { decrement: qty } },
+      data: { stockQty: { decrement: delta } },
     });
 
     await tx.ingredientMovement.create({
       data: {
         ingredientId,
         type: "PRODUCTION_USE",
-        qty: -qty,
+        qty: -delta,
         orderId,
         note: `Produksi nota ${order.code}`,
       },
@@ -434,5 +449,5 @@ export async function deductIngredientsForOrder(
     deductedCount += 1;
   }
 
-  return { skipped: false, deductedCount };
+  return { skipped: deductedCount === 0, deductedCount };
 }

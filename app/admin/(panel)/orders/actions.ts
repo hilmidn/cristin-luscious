@@ -551,9 +551,10 @@ export async function setOrderStatus(
         select: { id: true },
       });
 
-      // Override manual ke SELESAI_PRODUKSI juga memotong stok bahan,
-      // dengan guard idempotent yang sama seperti jalur produksi.
-      if (status === "SELESAI_PRODUKSI") {
+      // Override manual ke SELESAI_PRODUKSI (atau lompat langsung ke SELESAI)
+      // juga memotong stok bahan, dengan guard delta yang sama seperti
+      // jalur produksi.
+      if (status === "SELESAI_PRODUKSI" || status === "SELESAI") {
         await deductIngredientsForOrder(tx, id);
       }
     });
