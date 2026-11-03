@@ -62,6 +62,9 @@ const buttonPrimary =
 const buttonGhost =
   "inline-flex items-center justify-center gap-2 border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50";
 
+const menuItem =
+  "flex w-full items-center gap-2.5 px-4 py-2.5 text-left font-sans text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-dark transition-colors hover:bg-brand-card disabled:opacity-50";
+
 function emptyForm(): FormState {
   return { name: "", unit: "gram", minStockQty: "0", note: "" };
 }
@@ -73,7 +76,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // Nota pembelian (multi bahan)
   const [noteRows, setNoteRows] = useState<NoteRow[]>([]);
@@ -97,10 +100,6 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
     () => ingredients.reduce((acc, ing) => acc + ing.totalPurchased, 0),
     [ingredients],
   );
-
-  const toggle = (id: string) => {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
 
   const noteTotal = useMemo(
     () =>
@@ -135,6 +134,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
         ? { ...newNoteRow(), ingredientId: initialIngredient.id }
         : newNoteRow(),
     ]);
+    setOpenMenuId(null);
     setModal({ kind: "purchase-note", initialIngredient });
   };
 
@@ -142,6 +142,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
     setError(null);
     setAdjustQty("");
     setAdjustNote("");
+    setOpenMenuId(null);
     setModal({ kind: "adjust", ingredient });
   };
 
@@ -282,7 +283,7 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
         </div>
       </div>
 
-      {/* Card grid */}
+      {/* Tabel bahan */}
       {ingredients.length === 0 ? (
         <p className="border border-dashed border-brand-border bg-brand-card px-6 py-14 text-center font-sans text-[10px] uppercase tracking-[0.22em] text-brand-muted">
           Belum ada bahan baku — mulai dengan "Tambah Bahan"
@@ -292,91 +293,122 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
           Tidak ada bahan yang cocok dengan "{search}"
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((ing) => {
-            const isOpen = expanded[ing.id] ?? false;
+        <div className="overflow-x-auto border border-brand-border bg-brand-bg">
+          <table className="w-full text-left font-sans text-xs text-brand-dark">
+            <thead className="border-b border-brand-border bg-brand-card font-sans text-[9px] font-bold uppercase tracking-[0.22em] text-brand-text">
+              <tr>
+                <th className="px-5 py-3.5">Bahan</th>
+                <th className="px-5 py-3.5">Stok</th>
+                <th className="px-5 py-3.5">Min Stok</th>
+                <th className="px-5 py-3.5">Catatan</th>
+                <th className="px-5 py-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((ing) => {
+                const menuOpen = openMenuId === ing.id;
 
-            return (
-              <div
-                key={ing.id}
-                className={`flex flex-col border bg-brand-bg ${
-                  ing.isLow ? "border-brand-dark" : "border-brand-border"
-                }`}
-              >
-                {/* Card head — tap untuk buka/tutup aksi */}
-                <button
-                  onClick={() => toggle(ing.id)}
-                  className="w-full px-4 py-3 text-left transition-colors hover:bg-brand-card/50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="min-w-0 truncate font-playfair text-base font-bold uppercase tracking-tight text-brand-dark">
-                      {ing.name}
-                    </h3>
-                    {ing.isLow && (
-                      <span className="shrink-0 border border-brand-dark bg-brand-dark px-2 py-0.5 font-sans text-[8px] font-bold uppercase tracking-[0.2em] text-brand-bg">
-                        Rendah
+                return (
+                  <tr
+                    key={ing.id}
+                    className="border-b border-brand-border/70 transition-colors last:border-b-0 hover:bg-brand-card/60"
+                  >
+                    <td className="px-5 py-3.5">
+                      <span className="font-semibold uppercase tracking-[0.06em]">
+                        {ing.name}
                       </span>
-                    )}
-                  </div>
-                  <div className="mt-1.5 flex items-end justify-between gap-2">
-                    <p className="font-playfair text-2xl font-bold leading-none text-brand-dark">
-                      <span className="mr-1.5 align-middle font-sans text-[9px] font-bold uppercase tracking-[0.2em] text-brand-text">
-                        Stok
-                      </span>
-                      {ing.stockQty.toLocaleString("id-ID")}
-                      <span className="ml-1.5 font-sans text-[11px] font-light normal-case tracking-normal text-brand-text">
-                        {ing.unit}
-                      </span>
-                    </p>
-                    <span className="flex shrink-0 items-center gap-1 font-sans text-[9px] uppercase tracking-[0.14em] text-brand-text">
-                      Min Stok {ing.minStockQty.toLocaleString("id-ID")}
-                      <ChevronDown
-                        className={`h-3.5 w-3.5 text-brand-muted transition-transform duration-200 ${
-                          isOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </span>
-                  </div>
-                </button>
+                      {ing.isLow && (
+                        <span className="ml-2 border border-brand-dark bg-brand-dark px-1.5 py-0.5 font-sans text-[8px] font-bold uppercase tracking-[0.2em] text-brand-bg">
+                          Rendah
+                        </span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[11px]">
+                      {ing.stockQty.toLocaleString("id-ID")}{" "}
+                      <span className="font-sans text-[10px] text-brand-text">{ing.unit}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[11px] text-brand-text">
+                      {ing.minStockQty.toLocaleString("id-ID")}{" "}
+                      <span className="font-sans text-[10px]">{ing.unit}</span>
+                    </td>
+                    <td className="max-w-[240px] truncate px-5 py-3.5 text-[11px] text-brand-text">
+                      {ing.note || "—"}
+                    </td>
+                    <td className="relative px-5 py-3.5 text-right">
+                      <button
+                        onClick={() => setOpenMenuId(menuOpen ? null : ing.id)}
+                        className="inline-flex items-center gap-1.5 border border-brand-border bg-brand-bg px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-text transition-colors hover:border-brand-dark hover:text-brand-dark"
+                      >
+                        Aksi
+                        <ChevronDown
+                          className={`h-3 w-3 transition-transform duration-200 ${
+                            menuOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
 
-                {/* Aksi — muncul setelah card ditap */}
-                {isOpen && (
-                  <div className="grid grid-cols-2 gap-2 border-t border-brand-border px-4 py-3">
-                    <button
-                      onClick={() => openPurchaseNote(ing)}
-                      disabled={isPending}
-                      className={`${buttonPrimary} col-span-2`}
-                    >
-                      <ShoppingCart className="h-3.5 w-3.5" />
-                      Catat Pembelian
-                    </button>
-                    <button onClick={() => openAdjust(ing)} className={buttonGhost}>
-                      <Scale className="h-3.5 w-3.5" />
-                      Koreksi
-                    </button>
-                    <button
-                      onClick={() => setModal({ kind: "history", ingredient: ing })}
-                      className={buttonGhost}
-                    >
-                      <History className="h-3.5 w-3.5" />
-                      Riwayat
-                    </button>
-                    <button onClick={() => openForm(ing)} className={buttonGhost}>
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => submitDelete(ing)}
-                      className="inline-flex items-center justify-center gap-2 border border-brand-border bg-brand-bg px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-muted transition-colors hover:border-brand-dark hover:text-brand-dark disabled:opacity-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Hapus
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                      {menuOpen && (
+                        <>
+                          {/* Click-outside */}
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setOpenMenuId(null)}
+                          />
+                          <div className="absolute right-5 top-full z-50 w-44 border border-brand-border bg-brand-bg shadow-lg">
+                            <button
+                              onClick={() => openPurchaseNote(ing)}
+                              disabled={isPending}
+                              className={menuItem}
+                            >
+                              <ShoppingCart className="h-3.5 w-3.5 text-brand-muted" />
+                              Catat Pembelian
+                            </button>
+                            <button
+                              onClick={() => openAdjust(ing)}
+                              disabled={isPending}
+                              className={menuItem}
+                            >
+                              <Scale className="h-3.5 w-3.5 text-brand-muted" />
+                              Koreksi Stok
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setModal({ kind: "history", ingredient: ing });
+                              }}
+                              className={menuItem}
+                            >
+                              <History className="h-3.5 w-3.5 text-brand-muted" />
+                              Riwayat
+                            </button>
+                            <button
+                              onClick={() => openForm(ing)}
+                              disabled={isPending}
+                              className={menuItem}
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-brand-muted" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                submitDelete(ing);
+                              }}
+                              disabled={isPending}
+                              className={`${menuItem} text-brand-muted hover:text-brand-dark`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Hapus
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
