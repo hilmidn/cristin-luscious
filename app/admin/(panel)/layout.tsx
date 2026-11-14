@@ -5,6 +5,13 @@ import AdminShell from "@/components/admin/AdminShell";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Server Action admin (simpan pesanan, dll.) berjalan di route ini. Beri
+ * ruang lebih dari `TX_OPTIONS.timeout` (20 detik) + waktu auth/revalidate
+ * supaya Vercel tidak mematikan function sebelum transaksi selesai.
+ */
+export const maxDuration = 30;
+
 export default async function PanelLayout({
   children,
 }: Readonly<{

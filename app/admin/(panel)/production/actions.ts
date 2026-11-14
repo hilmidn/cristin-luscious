@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import type { OrderStatus } from "@/lib/order-types";
-import { getPrisma } from "@/lib/prisma";
+import { getPrisma, TX_OPTIONS } from "@/lib/prisma";
 import { deductIngredientsForOrder } from "@/lib/inventory";
 import {
   PRODUCTION_STAGES,
@@ -179,7 +179,7 @@ export async function setProductionProductStage(
           data: { status: "DIPROSES" },
         });
       }
-    });
+    }, TX_OPTIONS);
 
     revalidateProduction();
 

@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { deductIngredientsForOrder } from "@/lib/inventory";
-import { getPrisma } from "@/lib/prisma";
+import { getPrisma, TX_OPTIONS } from "@/lib/prisma";
 import {
   calculateOrderTotals,
   isMapUrl,
@@ -122,6 +122,69 @@ function isCodeConflict(error: unknown): boolean {
     (error as { code?: string }).code === "P2002"
   );
 }
+
+/**
+ * P2028 = transaksi dibatalkan Prisma karena melewati batas waktu (atau
+ * koneksinya putus). Perubahan sudah di-rollback, jadi aman untuk dicoba lagi.
+ */
+function isTransactionExpired(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const { code, message } = error as { code?: string; message?: string };
+
+  return code === "P2028" || /transaction.*expired/i.test(message ?? "");
+}
+
+/** Baris item yang akan dibuat sekaligus lewat `createMany`. */
+type OrderItemCreateData = {
+  orderId: string;
+  productId: string | null;
+  variantId: string | null;
+  productName: string;
+  variantName: string;
+  unitPrice: number | null;
+  priceUnit: string | null;
+  quantity: number;
+  sortOrder: number;
+  lineTotal: number;
+};
+
+type ExistingOrderItem = Omit<OrderItemCreateData, "orderId"> & { id: string };
+
+/**
+ * Kunci pencocokan item lama vs item form. Varian/produk yang sudah dihapus
+ * dari katalog fallback ke snapshot nama.
+ */
+function itemKey(item: {
+  productId: string | null;
+  variantId: string | null;
+  productName: string;
+  variantName: string;
+}): string {
+  return (
+    item.variantId ??
+    item.productId ??
+    `${item.productName}::${item.variantName}`
+  );
+}
+
+/** True bila item di DB sudah identik dengan isian form (tidak perlu update). */
+function isSameOrderItem(current: ExistingOrderItem, next: ResolvedItem) {
+  return (
+    current.productId === next.productId &&
+    current.variantId === next.variantId &&
+    current.productName === next.productName &&
+    current.variantName === next.variantName &&
+    current.unitPrice === next.unitPrice &&
+    current.priceUnit === next.priceUnit &&
+    current.quantity === next.quantity &&
+    current.sortOrder === next.sortOrder &&
+    current.lineTotal === next.lineTotal
+  );
+}
+
 
 function codePrefix(date: Date) {
   // Tanggal WIB, bukan zona waktu server.
@@ -325,7 +388,24 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
     const existing = input.id
       ? await prisma.order.findUnique({
           where: { id: input.id },
-          include: { items: { select: { id: true, variantId: true, productId: true, quantity: true } } },
+          include: {
+            // Data item diambil di luar transaksi: mengurangi round-trip dan
+            // dipakai untuk melewati update yang tidak mengubah apa pun.
+            items: {
+              select: {
+                id: true,
+                productId: true,
+                variantId: true,
+                productName: true,
+                variantName: true,
+                unitPrice: true,
+                priceUnit: true,
+                quantity: true,
+                sortOrder: true,
+                lineTotal: true,
+              },
+            },
+          },
         })
       : null;
 
@@ -371,98 +451,84 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
 
           // Item di-update berdasarkan id (bukan delete-recreate) supaya
           // production_tasks yang menempel tidak kehilangan progres.
-          // 1. Dapatkan existing items dari DB, dikelompokkan per varian/produk.
-          const dbItems = existing
-            ? await tx.orderItem.findMany({
-                where: { orderId: existing.id },
-                select: {
-                  id: true,
-                  variantId: true,
-                  productId: true,
-                  productName: true,
-                  variantName: true,
-                },
-              })
-            : [];
+          // 1. Antrekan item lama per varian/produk.
+          const dbItemQueues = new Map<string, ExistingOrderItem[]>();
 
-          const dbItemQueues = new Map<string, string[]>();
-
-          for (const item of dbItems) {
-            const key =
-              item.variantId ??
-              item.productId ??
-              `${item.productName}::${item.variantName}`;
+          for (const item of existing?.items ?? []) {
+            const key = itemKey(item);
             const queue = dbItemQueues.get(key) ?? [];
-            queue.push(item.id);
+            queue.push(item);
             dbItemQueues.set(key, queue);
           }
 
-          // 2. Update item yang cocok, create sisanya.
-          for (const resolved of resolvedItems) {
-            const key =
-              resolved.variantId ??
-              resolved.productId ??
-              `${resolved.productName}::${resolved.variantName}`;
-            const existingItemId = dbItemQueues.get(key)?.shift();
+          // 2. Item yang berubah di-update, sisanya (termasuk semua item pada
+          //    pesanan baru) dibuat sekaligus lewat satu `createMany`.
+          const itemsToCreate: OrderItemCreateData[] = [];
 
-            if (existingItemId) {
-              // Update item yang sudah ada
-              await tx.orderItem.update({
-                where: { id: existingItemId },
-                data: {
-                  variantId: resolved.variantId,
-                  productId: resolved.productId,
-                  productName: resolved.productName,
-                  variantName: resolved.variantName,
-                  unitPrice: resolved.unitPrice,
-                  priceUnit: resolved.priceUnit,
-                  quantity: resolved.quantity,
-                  lineTotal: resolved.lineTotal,
-                  sortOrder: resolved.sortOrder,
-                },
-              });
-            } else {
-              // Create item baru
-              await tx.orderItem.create({
-                data: {
-                  variantId: resolved.variantId,
-                  productId: resolved.productId,
-                  productName: resolved.productName,
-                  variantName: resolved.variantName,
-                  unitPrice: resolved.unitPrice,
-                  priceUnit: resolved.priceUnit,
-                  quantity: resolved.quantity,
-                  lineTotal: resolved.lineTotal,
-                  sortOrder: resolved.sortOrder,
-                  orderId: order.id,
-                },
-              });
+          for (const resolved of resolvedItems) {
+            const existingItem = dbItemQueues.get(itemKey(resolved))?.shift();
+
+            if (!existingItem) {
+              itemsToCreate.push({ ...resolved, orderId: order.id });
+              continue;
             }
+
+            if (isSameOrderItem(existingItem, resolved)) {
+              continue;
+            }
+
+            await tx.orderItem.update({
+              where: { id: existingItem.id },
+              data: {
+                variantId: resolved.variantId,
+                productId: resolved.productId,
+                productName: resolved.productName,
+                variantName: resolved.variantName,
+                unitPrice: resolved.unitPrice,
+                priceUnit: resolved.priceUnit,
+                quantity: resolved.quantity,
+                lineTotal: resolved.lineTotal,
+                sortOrder: resolved.sortOrder,
+              },
+            });
+          }
+
+          if (itemsToCreate.length > 0) {
+            await tx.orderItem.createMany({ data: itemsToCreate });
           }
 
           // 3. Hapus item yang sudah tidak ada di form. Task ikut terhapus
           //    lewat onDelete: Cascade.
-          const idsToDelete = Array.from(dbItemQueues.values()).flat();
+          const idsToDelete = Array.from(dbItemQueues.values())
+            .flat()
+            .map((item) => item.id);
+
           if (idsToDelete.length > 0) {
             await tx.orderItem.deleteMany({ where: { id: { in: idsToDelete } } });
           }
 
           // 4. Satu task produksi per item. Tanggal kerja mengikuti tanggal
           //    ambil/kirim pesanan; tahap yang sudah berjalan dipertahankan.
+          //    Pembuatan & sinkron tanggal dilakukan sekaligus (bukan upsert
+          //    per item) supaya tidak menambah round-trip per item.
           const savedItems = await tx.orderItem.findMany({
             where: { orderId: order.id },
             select: { id: true },
           });
 
-          for (const item of savedItems) {
-            await tx.productionTask.upsert({
-              where: { orderItemId: item.id },
-              create: {
+          if (savedItems.length > 0) {
+            await tx.productionTask.createMany({
+              data: savedItems.map((item) => ({
                 orderId: order.id,
                 orderItemId: item.id,
                 scheduledAt,
-              },
-              update: { scheduledAt },
+              })),
+              skipDuplicates: true,
+            });
+
+            await tx.productionTask.updateMany({
+              where: { orderId: order.id, scheduledAt: { not: scheduledAt } },
+              data: { scheduledAt },
             });
           }
 
@@ -483,7 +549,7 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
           }
 
           return order;
-        });
+        }, TX_OPTIONS);
       } catch (error) {
         if (!existing && isCodeConflict(error) && attempt < MAX_CODE_ATTEMPTS - 1) {
           continue;
@@ -502,6 +568,14 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
     return { ok: true, id: saved.id, code: saved.code };
   } catch (error) {
     console.error("saveOrder", error);
+
+    if (isTransactionExpired(error)) {
+      return {
+        ok: false,
+        error:
+          "Server sedang lambat saat menyimpan pesanan. Data belum tersimpan — silakan simpan sekali lagi.",
+      };
+    }
 
     return {
       ok: false,
@@ -557,7 +631,7 @@ export async function setOrderStatus(
       if (status === "SELESAI_PRODUKSI" || status === "SELESAI") {
         await deductIngredientsForOrder(tx, id);
       }
-    });
+    }, TX_OPTIONS);
 
     revalidateOrders(id);
 

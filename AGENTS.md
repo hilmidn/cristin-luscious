@@ -24,6 +24,7 @@ Website Cristin Luscious (cookies & dessert premium) + area admin privat di `/ad
 
 - Client di-generate ke `generated/prisma` dan **gitignored**; jalankan `prisma generate` lewat `postinstall`/`npm run build`.
 - Selalu akses DB lewat `getPrisma()` dari `lib/prisma.ts` (lazy). Jangan instansiasi `PrismaClient` di tempat lain — import top-level bikin `next build` gagal saat `DATABASE_URL` tidak ada.
+- Semua `$transaction` interaktif wajib memakai `TX_OPTIONS` dari `lib/prisma.ts` (`maxWait` 10 s, `timeout` 20 s). Default Prisma 5 detik sering habis di Vercel + Neon (error `P2028` "transaction expired"). Tetap usahakan query di dalam transaksi sedikit: pakai `createMany`/`updateMany` alih-alih loop per baris.
 - `next.config.ts` memuat `serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg"]`.
 - `prisma.config.ts` memuat `.env.local` eksplisit (Prisma CLI tidak membacanya sendiri) dan memakai `DIRECT_URL ?? DATABASE_URL`.
 - Env: `DATABASE_URL` = koneksi Neon pooled (runtime), `DIRECT_URL` = direct (migration). Lihat `.env.example`.

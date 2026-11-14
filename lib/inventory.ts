@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
-import { getPrisma } from "./prisma";
+import { getPrisma, TX_OPTIONS } from "./prisma";
 import type {
   IngredientInput,
   IngredientRow,
@@ -133,26 +133,28 @@ export async function createPurchaseNote(input: PurchaseNoteInput) {
       include: { items: true },
     });
 
+    // Stok per bahan harus di-increment satu per satu (nilainya beda),
+    // tetapi jurnal movement bisa dibuat sekaligus.
     for (const item of note.items) {
       await tx.ingredient.update({
         where: { id: item.ingredientId },
         data: { stockQty: { increment: item.qty } },
       });
-
-      await tx.ingredientMovement.create({
-        data: {
-          ingredientId: item.ingredientId,
-          type: "PURCHASE",
-          qty: item.qty,
-          note: input.supplier?.trim()
-            ? `Pembelian dari ${input.supplier.trim()}`
-            : "Pembelian bahan",
-        },
-      });
     }
 
+    await tx.ingredientMovement.createMany({
+      data: note.items.map((item) => ({
+        ingredientId: item.ingredientId,
+        type: "PURCHASE" as const,
+        qty: item.qty,
+        note: input.supplier?.trim()
+          ? `Pembelian dari ${input.supplier.trim()}`
+          : "Pembelian bahan",
+      })),
+    });
+
     return note;
-  });
+  }, TX_OPTIONS);
 }
 
 /**
@@ -214,7 +216,7 @@ export async function adjustStock(
         note: note?.trim() || "Koreksi stok manual",
       },
     });
-  });
+  }, TX_OPTIONS);
 }
 
 /**

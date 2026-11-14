@@ -3,7 +3,7 @@
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
-import { getPrisma } from "@/lib/prisma";
+import { getPrisma, TX_OPTIONS } from "@/lib/prisma";
 import { slugify, isAllowedImagePath, type ProductInput } from "@/lib/catalog-types";
 
 export type SaveProductResult =
@@ -221,7 +221,7 @@ export async function saveProduct(
       });
 
       return product.id;
-    });
+    }, TX_OPTIONS);
 
     revalidateCatalog([slug, existing?.slug ?? ""]);
 
