@@ -16,7 +16,25 @@ model AdminUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  apiTokens ApiToken[]
+
   @@map("admin_users")
+}
+
+/// Token akses API mobile (Flutter): login email+password menukar kredensial
+/// dengan token acak; DB hanya menyimpan hash SHA-256-nya.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  name       String    @default("mobile")
+  lastUsedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("api_tokens")
 }
 
 enum ServiceType {
