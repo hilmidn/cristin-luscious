@@ -93,9 +93,12 @@ setState sederhana (v1 cukup setState).
       (JDK 17 & Android SDK sudah ada dari workflow Rinpulse).
 - [x] **Hosting API** — produksi: `https://cristinsluscious.my.id`
       (sudah jalan); Flutter cukup set base URL `/api/v1`.
-- [ ] Migrasi `api_tokens` + login endpoint (commit pertama API di
-      branch `feature/mobile-api`).
-- [ ] Refactor ringan: tarik logika `saveOrder` & produksi ke fungsi di
+- [x] **Migrasi `api_tokens` + login endpoint (commit pertama API di
+      branch `feature/mobile-api`).** SELESAI 16 Nov: semua 7 endpoint v1
+      sudah dibangun (auth login/logout, catalog, orders create/recap/
+      detail, production board/stage) — inti logika di `lib/order-save.ts`
+      & `lib/production-stage.ts`, guard `requireApiUser` di `lib/api-auth.ts`.
+- [x] Refactor ringan: tarik logika `saveOrder` & produksi ke fungsi di
       `lib/` yang bisa dipakai server actions DAN API routes (kalau
       TX_OPTIONS commit belum memisahkannya).
 - [ ] `flutter create` + struktur folder (repo baru, branch `master`).
