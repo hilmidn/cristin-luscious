@@ -18,14 +18,16 @@ memasukkan pesanan, mengelola produksi, dan rekap pesanan untuk print
 
 ```
 [HP Android — Flutter]
-        │  HTTPS/HTTP + Bearer token
+        │  Bearer token
         ▼
-[REST API /api/v1/* — di dalam cristin-luscious (Next.js)]
+[https://cristinsluscious.my.id  →  /api/v1/* (cristin-luscious, Next.js)]
         │  Prisma + TX_OPTIONS transactions
         ▼
 [PostgreSQL]
 ```
 
+- **Base URL app:** `https://cristinsluscious.my.id/api/v1` — deployment
+  produksi yang sudah jalan, tinggal set di Flutter.
 - **Nol duplikasi business logic**: order code generator, transaksi order,
   production stage, deduction bahan — semua tetap di TypeScript, Flutter
   cuma konsumsi JSON + render + print.
@@ -89,10 +91,8 @@ setState sederhana (v1 cukup setState).
 
 - [ ] Flutter SDK stable di MacBook M1 + `flutter doctor` hijau
       (JDK 17 & Android SDK sudah ada dari workflow Rinpulse).
-- [ ] **Keputusan hosting API** — di mana `cristin-luscious` jalan supaya
-      bisa direach HP:
-      (a) MacBook + Tailscale (HTTP aman di jaringan privat), atau
-      (b) VPS/hiuhu-server + HTTPS.
+- [x] **Hosting API** — produksi: `https://cristinsluscious.my.id`
+      (sudah jalan); Flutter cukup set base URL `/api/v1`.
 - [ ] Migrasi `api_tokens` + login endpoint (commit pertama API di
       branch `feature/mobile-api`).
 - [ ] Refactor ringan: tarik logika `saveOrder` & produksi ke fungsi di
