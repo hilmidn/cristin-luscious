@@ -280,7 +280,7 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
 
         if (!variant) {
           throw new Error(
-            "Varian yang dipilih tidak ditemukan. Muat ulang halaman lalu coba lagi.",
+            "Varian sudah tidak tersedia. Tarik ulang katalog lalu coba lagi.",
           );
         }
 
@@ -303,7 +303,7 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
 
         if (!product) {
           throw new Error(
-            "Produk yang dipilih tidak ditemukan. Muat ulang halaman lalu coba lagi.",
+            "Produk sudah tidak tersedia. Tarik ulang katalog lalu coba lagi.",
           );
         }
 

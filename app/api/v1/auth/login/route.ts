@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return Response.json(
-      { ok: false, error: "Body harus JSON valid." },
+      { ok: false, error: "Permintaan tidak valid. Coba lagi." },
       { status: 400 },
     );
   }
