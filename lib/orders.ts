@@ -333,6 +333,28 @@ export async function getClosedOrderMonths(): Promise<string[]> {
   return [...keys].sort((a, b) => b.localeCompare(a));
 }
 
+/** Pesanan berjalan (BARU/DIPROSES/SELESAI_PRODUKSI) untuk app mobile:
+ * dipakai rekap "berjalan" & cetak struk. Urut jadwal terdekat dulu. */
+export async function getActiveOrders(
+  filters: { month?: string } = {},
+): Promise<AdminOrder[]> {
+  const conditions: Prisma.OrderWhereInput[] = [
+    { status: { in: ["BARU", "DIPROSES", "SELESAI_PRODUKSI"] } },
+  ];
+
+  if (filters.month) {
+    conditions.push(monthFilter(filters.month));
+  }
+
+  const orders = await getPrisma().order.findMany({
+    where: { AND: conditions },
+    orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }],
+    include: { items: orderItemsInclude },
+  });
+
+  return orders.map(toAdminOrder);
+}
+
 export type OrderTrendPoint = {
   monthKey: string;
   label: string;
