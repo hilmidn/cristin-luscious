@@ -43,10 +43,7 @@ function bearerToken(request: Request): string {
   const match = /^Bearer\s+(\S+)$/i.exec(header.trim());
 
   if (!match) {
-    throw new ApiError(
-      401,
-      "Token tidak ditemukan. Login dulu lewat POST /api/v1/auth/login.",
-    );
+    throw new ApiError(401, "Sesi berakhir. Silakan login ulang.");
   }
 
   return match[1];
@@ -71,10 +68,7 @@ export async function requireApiToken(
   });
 
   if (!apiToken || apiToken.expiresAt.getTime() <= Date.now()) {
-    throw new ApiError(
-      401,
-      "Token tidak valid atau sudah kedaluwarsa. Silakan login ulang.",
-    );
+    throw new ApiError(401, "Sesi tidak valid. Silakan login ulang.");
   }
 
   // Catat pemakaian terakhir tanpa menahan respons (best-effort).

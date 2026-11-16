@@ -54,7 +54,7 @@ export async function applyProductionStage(
   if (existing.length !== ids.length) {
     return {
       ok: false,
-      error: "Sebagian item produksi sudah tidak tersedia. Muat ulang halaman.",
+      error: "Data produksi sudah berubah. Tarik ulang dulu ya.",
     };
   }
 
