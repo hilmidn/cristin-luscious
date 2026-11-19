@@ -134,6 +134,9 @@ export async function saveProduct(
       return { ok: false, error: "Produk tidak ditemukan." };
     }
 
+    const fulfillmentMode: "PRE_ORDER" | "READY" =
+      input.fulfillmentMode === "READY" ? "READY" : "PRE_ORDER";
+
     const productId = await prisma.$transaction(async (tx) => {
       const productData = {
         slug,
@@ -144,6 +147,7 @@ export async function saveProduct(
         features: input.features.map((feature) => feature.trim()).filter(Boolean),
         customNote: input.customNote?.trim() || null,
         published: input.published,
+        fulfillmentMode,
         sortOrder: Number.isFinite(input.sortOrder)
           ? Math.round(input.sortOrder)
           : 0,

@@ -15,6 +15,8 @@ export type CatalogVariant = {
   tags: string[];
 };
 
+export type FulfillmentMode = "PRE_ORDER" | "READY";
+
 export type CatalogProduct = {
   id: string;
   slug: string;
@@ -24,6 +26,8 @@ export type CatalogProduct = {
   image: string;
   features: string[];
   hasVariants: boolean;
+  /** READY = dijual dari stok jadi (ambil hari ini); PRE_ORDER = dibuat per pesanan. */
+  fulfillmentMode: FulfillmentMode;
   variants: CatalogVariant[];
   customNote?: string;
 };
@@ -50,6 +54,7 @@ export type ProductInput = {
   features: string[];
   customNote: string | null;
   published: boolean;
+  fulfillmentMode: FulfillmentMode;
   sortOrder: number;
   variants: VariantInput[];
 };
@@ -77,6 +82,7 @@ export type AdminProduct = {
   features: string[];
   customNote: string | null;
   published: boolean;
+  fulfillmentMode: FulfillmentMode;
   sortOrder: number;
   variants: AdminVariant[];
 };
