@@ -107,6 +107,25 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
               <h1 className="font-playfair text-4xl md:text-5xl font-bold uppercase tracking-tight text-brand-dark leading-tight">
                 {product.name}
               </h1>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <span
+                  className={`px-2.5 py-1 text-[9px] font-semibold tracking-widest uppercase font-sans border ${
+                    product.fulfillmentMode === "READY"
+                      ? "bg-brand-dark text-brand-bg border-brand-dark"
+                      : "bg-brand-bg text-brand-text border-brand-border"
+                  }`}
+                >
+                  {product.fulfillmentMode === "READY" ? "Ready Stock" : "Pre-order"}
+                </span>
+                <Link
+                  href="/order"
+                  className="text-[10px] tracking-widest uppercase font-semibold text-brand-text underline underline-offset-4 decoration-brand-border transition-colors hover:text-brand-dark hover:decoration-brand-dark"
+                >
+                  Pesan via Web
+                </Link>
+              </div>
+
               <div className="w-16 h-px bg-brand-border mt-5" />
             </div>
 

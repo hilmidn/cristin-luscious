@@ -103,6 +103,15 @@ export default function ProductList({ products }: ProductListProps) {
 
                   {/* Highlights Bullet Tags */}
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-brand-border/60">
+                    <span
+                      className={`text-[9px] font-semibold tracking-wider uppercase px-2.5 py-1 border ${
+                        product.fulfillmentMode === "READY"
+                          ? "bg-brand-dark text-brand-bg border-brand-dark"
+                          : "bg-brand-bg text-brand-text border-brand-border"
+                      }`}
+                    >
+                      {product.fulfillmentMode === "READY" ? "Ready Stock" : "Pre-order"}
+                    </span>
                     {product.features.map((feature, fIdx) => (
                       <span
                         key={fIdx}
@@ -115,7 +124,15 @@ export default function ProductList({ products }: ProductListProps) {
 
                   {/* Action Link */}
                   <div className="pt-4 flex justify-between items-center text-xs tracking-widest uppercase font-semibold text-brand-dark group-hover:text-brand-muted transition-colors">
-                    <span>Lihat Detail</span>
+                    <span className="flex items-center gap-4">
+                      <Link href={`/products/${product.slug}`}>Lihat Detail</Link>
+                      <Link
+                        href="/order"
+                        className="underline underline-offset-4 decoration-brand-border hover:decoration-brand-dark"
+                      >
+                        Pesan
+                      </Link>
+                    </span>
                     <Link
                       href={`/products/${product.slug}`}
                       className="w-8 h-8 rounded-full border border-brand-border group-hover:border-brand-text flex items-center justify-center transition-colors duration-500"
