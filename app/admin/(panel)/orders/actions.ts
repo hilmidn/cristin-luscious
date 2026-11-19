@@ -110,6 +110,14 @@ export async function setOrderStatus(
         throw new Error("Pesanan tidak ditemukan.");
       }
 
+      // Batal = final: stok jadi sudah dikembalikan saat pembatalan; membuka
+      // lagi membuat ledger stok tidak cocok dengan item.
+      if (current.status === "DIBATALKAN" && status !== "DIBATALKAN") {
+        throw new Error(
+          "Pesanan yang sudah dibatalkan tidak bisa diubah statusnya. Buat pesanan baru bila keliru.",
+        );
+      }
+
       await tx.order.update({
         where: { id },
         data: { status },
@@ -139,6 +147,12 @@ export async function setOrderStatus(
     return { ok: true };
   } catch (error) {
     console.error("setOrderStatus", error);
-    return { ok: false, error: "Gagal mengubah status pesanan." };
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Gagal mengubah status pesanan.",
+    };
   }
 }

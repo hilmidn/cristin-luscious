@@ -403,6 +403,17 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
       return { ok: false, error: "Pesanan tidak ditemukan." };
     }
 
+    // Nota batal = final: stok jadinya sudah dikembalikan saat pembatalan,
+    // sedangkan delta edit dihitung dari item lama — mengedit di sini akan
+    // membuat stok meleset. Hapus saja pesanannya bila salah buat.
+    if (existing?.status === "DIBATALKAN") {
+      return {
+        ok: false,
+        error:
+          "Pesanan yang sudah dibatalkan tidak bisa diedit. Hapus pesanannya bila salah buat.",
+      };
+    }
+
     const orderData = {
       customerName,
       phone,

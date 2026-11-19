@@ -311,13 +311,15 @@ export default function OrderDetailDialog({ order }: OrderDetailDialogProps) {
                   {isDownloading ? "Menyiapkan..." : "Unduh Nota"}
                 </button>
 
-                <Link
-                  href={`/admin/orders/${order.id}`}
-                  className="inline-flex items-center justify-center gap-2 border border-brand-dark bg-brand-dark px-5 py-3 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark"
-                >
-                  Edit Pesanan
-                  <ArrowUpRight size={12} />
-                </Link>
+                {order.status !== "DIBATALKAN" && (
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="inline-flex items-center justify-center gap-2 border border-brand-dark bg-brand-dark px-5 py-3 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark"
+                  >
+                    Edit Pesanan
+                    <ArrowUpRight size={12} />
+                  </Link>
+                )}
               </div>
             </div>
           </div>,
