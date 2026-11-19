@@ -13,6 +13,11 @@ import {
   subscribeCart,
 } from "@/lib/cart-store";
 import { productImageSrc, type CatalogProduct, type CatalogVariant } from "@/lib/catalog-types";
+import {
+  getContactSnapshot,
+  parseContactSnapshot,
+  saveContact,
+} from "@/lib/contact-store";
 import { Minus, Plus, ShoppingBag, Trash2, Loader2, Check } from "lucide-react";
 
 type OrderFlowProps = {
@@ -25,6 +30,9 @@ type OrderFlowProps = {
 };
 
 const MAX_WEB_QTY = 99;
+
+/// Kontak tidak berubah dari luar komponen — subscribe no-op cukup.
+const noopSubscribe = () => () => {};
 
 function formatTanggal(iso: string) {
   const [year, month, day] = iso.split("-").map(Number);
@@ -62,6 +70,15 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+
+  // Kontak terakhir tersimpan di localStorage — prefill nama & HP begitu ada.
+  const contactSnapshot = useSyncExternalStore(noopSubscribe, getContactSnapshot, () => "");
+  const savedContact = useMemo(
+    () => parseContactSnapshot(contactSnapshot),
+    [contactSnapshot],
+  );
+  const effectiveName = customerName || savedContact?.name || "";
+  const effectivePhone = phone || savedContact?.phone || "";
 
   const isPickupToday = date === today;
 
@@ -116,12 +133,12 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
       return;
     }
 
-    if (!customerName.trim()) {
+    if (!effectiveName.trim()) {
       setError("Nama wajib diisi.");
       return;
     }
 
-    if (phone.replace(/\D/g, "").length < 9) {
+    if (effectivePhone.replace(/\D/g, "").length < 9) {
       setError("Nomor HP tidak valid. Contoh: 08123456789.");
       return;
     }
@@ -133,8 +150,8 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
 
     startTransition(async () => {
       const result = await submitWebOrder({
-        customerName,
-        phone,
+        customerName: effectiveName,
+        phone: effectivePhone,
         note,
         scheduledAt: date,
         items: rows.map((row) => ({
@@ -149,6 +166,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
       }
 
       clearCart();
+      saveContact(effectiveName, effectivePhone);
       setSuccess(result.code);
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
@@ -189,7 +207,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             <div className="mt-8 space-y-2 border-t border-brand-border pt-6 text-left font-sans text-xs text-brand-text">
               <p>
                 <span className="uppercase tracking-[0.18em]">Nama</span>{" "}
-                <span className="float-right text-brand-dark">{customerName}</span>
+                <span className="float-right text-brand-dark">{effectiveName}</span>
               </p>
               <p>
                 <span className="uppercase tracking-[0.18em]">Ambil pada</span>{" "}
@@ -428,7 +446,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                     </label>
                     <input
                       id="nama"
-                      value={customerName}
+                      value={effectiveName}
                       onChange={(event) => setCustomerName(event.target.value)}
                       placeholder="Nama kamu"
                       className={inputClass}
@@ -442,7 +460,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                     <input
                       id="hp"
                       type="tel"
-                      value={phone}
+                      value={effectivePhone}
                       onChange={(event) => setPhone(event.target.value)}
                       placeholder="08123456789"
                       className={inputClass}

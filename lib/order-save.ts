@@ -369,12 +369,6 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
       variantMap.get(item.variantId)?.product.fulfillmentMode === "READY" &&
       isTodayWib(scheduledAt);
 
-    // Order yang SELURUH itemnya dari stok: dibuat langsung dengan status
-    // SELESAI_PRODUKSI (siap diambil, skip kalender). Order edit tetap
-    // mengikuti status dari form agar override admin tidak tertimpa.
-    const allFromStock =
-      resolvedItems.length > 0 && resolvedItems.every(isStockItem);
-
     const existing = input.id
       ? await prisma.order.findUnique({
           where: { id: input.id },
@@ -428,11 +422,7 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
       shippingCost: totals.shippingCost,
       subtotal: totals.subtotal,
       total: totals.total,
-      status: existing
-        ? parseStatus(input.status)
-        : allFromStock
-          ? "SELESAI_PRODUKSI"
-          : parseStatus(input.status),
+      status: parseStatus(input.status),
     };
 
     let saved: { id: string; code: string } | null = null;
@@ -627,10 +617,15 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
             }
           }
 
-          // Order yang seluruh itemnya dari stok: potong bahan di transaksi
-          // yang sama (delta-based & idempoten — aman dipanggil ulang saat
-          // order diedit). Order campur menunggu tahap SIAP seperti biasa.
-          if (allFromStock) {
+          // Bahan dipotong di sini hanya untuk nota yang status akhirnya
+          // sudah SELESAI_PRODUKSI/SELESAI (delta-based & idempoten — aman
+          // dipanggil ulang saat order diedit). Order web masuk sebagai BARU:
+          // bahan baru terpotong saat admin konfirmasi manual via
+          // setOrderStatus, jadi order iseng/batal tidak merusak data bahan.
+          if (
+            orderData.status === "SELESAI_PRODUKSI" ||
+            orderData.status === "SELESAI"
+          ) {
             await deductIngredientsForOrder(tx, order.id);
           }
 
