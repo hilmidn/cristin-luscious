@@ -84,6 +84,7 @@ export default function ProductForm({ product }: ProductFormProps) {
   const [fulfillmentMode, setFulfillmentMode] = useState<"PRE_ORDER" | "READY">(
     product?.fulfillmentMode ?? "PRE_ORDER",
   );
+  const [orderable, setOrderable] = useState(product?.orderable ?? true);
   const [sortOrder, setSortOrder] = useState(String(product?.sortOrder ?? 0));
   const [variants, setVariants] = useState<VariantDraft[]>(() =>
     toDraft(product),
@@ -160,6 +161,7 @@ export default function ProductForm({ product }: ProductFormProps) {
       customNote: customNote.trim() || null,
       published,
       fulfillmentMode,
+      orderable,
       sortOrder: sortOrder.trim() === "" ? 0 : Number(sortOrder),
       variants: variants.map((variant, index) => ({
         id: variant.id,
@@ -343,6 +345,27 @@ export default function ProductForm({ product }: ProductFormProps) {
                   Produk READY diambil hari ini langsung memotong stok jadi
                   (halaman Stok Jadi) dan tidak masuk kalender produksi.
                 </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="flex cursor-pointer items-start gap-3 border border-brand-border bg-brand-bg p-3.5">
+                  <input
+                    type="checkbox"
+                    checked={orderable}
+                    onChange={(event) => setOrderable(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-brand-dark"
+                  />
+                  <span>
+                    <span className="block font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-brand-dark">
+                      Bisa dipesan dari web
+                    </span>
+                    <span className="mt-1 block font-sans text-[9px] leading-relaxed text-brand-text">
+                      Matikan untuk memajang produk tanpa bisa dipesan online
+                      (disembunyikan dari halaman order) — pemesanan tetap
+                      lewat admin/WhatsApp.
+                    </span>
+                  </span>
+                </label>
               </div>
             </div>
           </section>

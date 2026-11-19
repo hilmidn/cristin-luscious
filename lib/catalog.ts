@@ -32,6 +32,7 @@ type ProductRow = {
   customNote: string | null;
   published: boolean;
   fulfillmentMode: "PRE_ORDER" | "READY";
+  orderable: boolean;
   sortOrder: number;
   variants: VariantRow[];
 };
@@ -47,6 +48,7 @@ function toCatalogProduct(product: ProductRow): CatalogProduct {
     features: product.features,
     hasVariants: product.variants.length > 0,
     fulfillmentMode: product.fulfillmentMode,
+    orderable: product.orderable,
     customNote: product.customNote ?? undefined,
     variants: product.variants.map((variant) => ({
       id: variant.id,
@@ -177,6 +179,7 @@ export async function getAdminProductById(
     customNote: product.customNote,
     published: product.published,
     fulfillmentMode: product.fulfillmentMode,
+    orderable: product.orderable,
     sortOrder: product.sortOrder,
     variants: product.variants.map((variant) => ({
       id: variant.id,

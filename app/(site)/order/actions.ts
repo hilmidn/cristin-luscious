@@ -1,5 +1,6 @@
 "use server";
 
+import { getPrisma } from "@/lib/prisma";
 import { saveOrderCore } from "@/lib/order-save";
 import type { OrderInput } from "@/lib/order-types";
 
@@ -24,6 +25,31 @@ export async function submitWebOrder(input: {
   scheduledAt: string;
   items: WebOrderItem[];
 }): Promise<WebOrderResult> {
+  // Produk yang dipesan wajib orderable — client bisa mengirim cart lama
+  // yang menyimpan varian produk yang sudah disembunyikan dari web.
+  const variantIds = [
+    ...new Set(input.items.map((item) => item.variantId)),
+  ];
+
+  if (variantIds.length > 0) {
+    const rows = await getPrisma().productVariant.findMany({
+      where: { id: { in: variantIds } },
+      select: { id: true, product: { select: { orderable: true } } },
+    });
+
+    const orderableById = new Map(rows.map((row) => [row.id, row.product.orderable]));
+
+    for (const variantId of variantIds) {
+      if (orderableById.get(variantId) === false) {
+        return {
+          ok: false,
+          error:
+            "Ada produk di keranjang yang sedang tidak bisa dipesan online. Hapus itemnya lalu coba lagi.",
+        };
+      }
+    }
+  }
+
   const payload: OrderInput = {
     customerName: input.customerName,
     phone: input.phone,

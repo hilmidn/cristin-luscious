@@ -68,6 +68,9 @@ model Product {
   customNote      String?
   published       Boolean         @default(true)
   fulfillmentMode FulfillmentMode @default(PRE_ORDER)
+  // false = dipajang di katalog tapi tidak bisa dipesan online (disembunyikan
+  // dari halaman /order) — mis. produk yang produksinya ditunda.
+  orderable       Boolean         @default(true)
   sortOrder       Int             @default(0)
 
   createdAt DateTime @default(now())

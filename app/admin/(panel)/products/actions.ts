@@ -148,6 +148,7 @@ export async function saveProduct(
         customNote: input.customNote?.trim() || null,
         published: input.published,
         fulfillmentMode,
+        orderable: input.orderable,
         sortOrder: Number.isFinite(input.sortOrder)
           ? Math.round(input.sortOrder)
           : 0,

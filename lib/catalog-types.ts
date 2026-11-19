@@ -30,6 +30,8 @@ export type CatalogProduct = {
   hasVariants: boolean;
   /** READY = dijual dari stok jadi (ambil hari ini); PRE_ORDER = dibuat per pesanan. */
   fulfillmentMode: FulfillmentMode;
+  /** false = tidak bisa dipesan dari web (disembunyikan dari halaman order). */
+  orderable: boolean;
   variants: CatalogVariant[];
   customNote?: string;
 };
@@ -57,6 +59,7 @@ export type ProductInput = {
   customNote: string | null;
   published: boolean;
   fulfillmentMode: FulfillmentMode;
+  orderable: boolean;
   sortOrder: number;
   variants: VariantInput[];
 };
@@ -85,6 +88,7 @@ export type AdminProduct = {
   customNote: string | null;
   published: boolean;
   fulfillmentMode: FulfillmentMode;
+  orderable: boolean;
   sortOrder: number;
   variants: AdminVariant[];
 };
