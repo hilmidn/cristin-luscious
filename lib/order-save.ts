@@ -14,6 +14,8 @@ import {
   type ServiceType,
 } from "@/lib/order-types";
 import { getPrisma, TX_OPTIONS } from "@/lib/prisma";
+import { deductIngredientsForOrder } from "@/lib/inventory";
+import { recordStockMovement } from "@/lib/stock";
 
 /**
  * Inti logika simpan pesanan — dipakai server action admin (saveOrder) DAN
@@ -119,6 +121,11 @@ function isTransactionExpired(error: unknown): boolean {
   return code === "P2028" || /transaction.*expired/i.test(message ?? "");
 }
 
+/** True bila tanggal ambil/kirim = hari ini menurut WIB. */
+function isTodayWib(date: Date): boolean {
+  return jakartaDateKey(date) === jakartaDateKey(new Date());
+}
+
 /** Baris item yang akan dibuat sekaligus lewat `createMany`. */
 type OrderItemCreateData = {
   orderId: string;
@@ -188,12 +195,17 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
     }
 
     const address = input.address?.trim() ?? "";
-    if (!address) throw new Error("Alamat wajib diisi.");
+
+    // Alamat wajib hanya untuk ANTAR — order web pickup-only tanpa alamat.
     if (address.length > MAX_ADDRESS) {
       throw new Error(`Alamat maksimal ${MAX_ADDRESS} karakter.`);
     }
 
     const serviceType = parseServiceType(input.serviceType);
+
+    if (serviceType === "ANTAR" && !address) {
+      throw new Error("Alamat wajib diisi untuk layanan antar.");
+    }
 
     const scheduledAt = parseScheduledAt(input.scheduledAt);
     if (!scheduledAt) {
@@ -256,7 +268,9 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
               name: true,
               price: true,
               priceUnit: true,
-              product: { select: { id: true, name: true } },
+              product: {
+                select: { id: true, name: true, fulfillmentMode: true },
+              },
             },
           })
         : Promise.resolve([]),
@@ -347,22 +361,19 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
 
     const totals = calculateOrderTotals(resolvedItems, shippingCost);
 
-    const orderData = {
-      customerName,
-      phone,
-      address,
-      scheduledAt,
-      serviceType,
-      deliveryPoint: serviceType === "ANTAR" ? deliveryPoint : null,
-      deliveryMapUrl:
-        serviceType === "ANTAR" ? rawMapUrl || null : null,
-      source: source || null,
-      note: note || null,
-      shippingCost: totals.shippingCost,
-      subtotal: totals.subtotal,
-      total: totals.total,
-      status: parseStatus(input.status),
-    };
+    // Item dari STOK JADI: produk READY (barang sudah ada) dan jadwal
+    // pengambilannya hari ini menurut WIB. Selain itu berjalan sebagai
+    // pre-order normal (kalender produksi + deduct bahan saat SIAP).
+    const isStockItem = (item: { variantId: string | null }): boolean =>
+      item.variantId !== null &&
+      variantMap.get(item.variantId)?.product.fulfillmentMode === "READY" &&
+      isTodayWib(scheduledAt);
+
+    // Order yang SELURUH itemnya dari stok: dibuat langsung dengan status
+    // SELESAI_PRODUKSI (siap diambil, skip kalender). Order edit tetap
+    // mengikuti status dari form agar override admin tidak tertimpa.
+    const allFromStock =
+      resolvedItems.length > 0 && resolvedItems.every(isStockItem);
 
     const existing = input.id
       ? await prisma.order.findUnique({
@@ -391,6 +402,27 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
     if (input.id && !existing) {
       return { ok: false, error: "Pesanan tidak ditemukan." };
     }
+
+    const orderData = {
+      customerName,
+      phone,
+      address,
+      scheduledAt,
+      serviceType,
+      deliveryPoint: serviceType === "ANTAR" ? deliveryPoint : null,
+      deliveryMapUrl:
+        serviceType === "ANTAR" ? rawMapUrl || null : null,
+      source: source || null,
+      note: note || null,
+      shippingCost: totals.shippingCost,
+      subtotal: totals.subtotal,
+      total: totals.total,
+      status: existing
+        ? parseStatus(input.status)
+        : allFromStock
+          ? "SELESAI_PRODUKSI"
+          : parseStatus(input.status),
+    };
 
     let saved: { id: string; code: string } | null = null;
 
@@ -492,12 +524,30 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
           //    per item) supaya tidak menambah round-trip per item.
           const savedItems = await tx.orderItem.findMany({
             where: { orderId: order.id },
-            select: { id: true },
+            select: {
+              id: true,
+              variantId: true,
+              productId: true,
+              productName: true,
+              variantName: true,
+            },
           });
 
-          if (savedItems.length > 0) {
+          // Item dari stok jadi tidak mendapat task produksi — barangnya
+          // sudah ada; hanya item pre-order yang masuk kalender.
+          const stockKeys = new Set(
+            resolvedItems
+              .filter((item) => isStockItem(item))
+              .map((item) => itemKey(item)),
+          );
+
+          const calendarItems = savedItems.filter(
+            (item) => !stockKeys.has(itemKey(item)),
+          );
+
+          if (calendarItems.length > 0) {
             await tx.productionTask.createMany({
-              data: savedItems.map((item) => ({
+              data: calendarItems.map((item) => ({
                 orderId: order.id,
                 orderItemId: item.id,
                 scheduledAt,
@@ -509,6 +559,68 @@ export async function saveOrderCore(input: OrderInput): Promise<SaveOrderResult>
               where: { orderId: order.id, scheduledAt: { not: scheduledAt } },
               data: { scheduledAt },
             });
+          }
+
+          // Delta stok jadi: kebutuhan terkini dikurangi yang sudah pernah
+          // tercatat keluar untuk nota ini (movement ber-orderItemId).
+          // Idempoten sekaligus menangani item yang berubah saat edit.
+          const stockDelta = new Map<string, number>();
+
+          for (const item of resolvedItems) {
+            if (!isStockItem(item) || !item.variantId) continue;
+            stockDelta.set(
+              item.variantId,
+              (stockDelta.get(item.variantId) ?? 0) + item.quantity,
+            );
+          }
+
+          // Kebutuhan lama: cukup READY di katalog (tanpa syarat hari ini),
+          // karena stok memang pernah keluar untuk nota ini.
+          for (const item of existing?.items ?? []) {
+            if (!item.variantId) continue;
+            const oldVariant = variantMap.get(item.variantId);
+            if (oldVariant?.product.fulfillmentMode !== "READY") continue;
+            stockDelta.set(
+              item.variantId,
+              (stockDelta.get(item.variantId) ?? 0) - item.quantity,
+            );
+          }
+
+          for (const [variantId, delta] of stockDelta) {
+            if (delta === 0) continue;
+
+            const variant = variantMap.get(variantId);
+            const linkedItemId =
+              savedItems.find((item) => item.variantId === variantId)?.id ??
+              null;
+
+            try {
+              await recordStockMovement(tx, {
+                variantId,
+                type: delta > 0 ? "OUT" : "IN",
+                qty: Math.abs(delta),
+                orderItemId: linkedItemId,
+                note: `Nota ${code}`,
+              });
+            } catch (error) {
+              if (
+                error instanceof Error &&
+                error.message === "Stok varian tidak cukup."
+              ) {
+                throw new Error(
+                  `Stok "${variant?.name ?? variantId}" tidak cukup untuk jadwal hari ini.`,
+                );
+              }
+
+              throw error;
+            }
+          }
+
+          // Order yang seluruh itemnya dari stok: potong bahan di transaksi
+          // yang sama (delta-based & idempoten — aman dipanggil ulang saat
+          // order diedit). Order campur menunggu tahap SIAP seperti biasa.
+          if (allFromStock) {
+            await deductIngredientsForOrder(tx, order.id);
           }
 
           // Bila nota sebelumnya sudah selesai produksi lalu ditambah item

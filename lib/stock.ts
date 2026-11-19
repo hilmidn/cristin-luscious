@@ -222,3 +222,69 @@ export async function getVariantMovements(
     createdAt: row.createdAt.toISOString(),
   }));
 }
+
+/**
+ * Kembalikan stok jadi yang sempat keluar untuk satu nota (order dibatalkan
+ * atau dihapus). Sumber kebenarannya LEDGER, bukan katalog: net keluar =
+ * sum(OUT) - sum(IN) dari movement yang tertaut ke item nota, sehingga
+ * idempoten (setelah dikembalikan, net nol → tidak dobel).
+ *
+ * WAJIB dipanggil dalam transaksi pemanggil.
+ */
+export async function restoreOrderVariantStock(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  orderCode?: string | null,
+): Promise<void> {
+  const items = await tx.orderItem.findMany({
+    where: { orderId },
+    select: { id: true, variantId: true },
+  });
+
+  const itemIds = items.map((item) => item.id);
+
+  if (itemIds.length === 0) {
+    return;
+  }
+
+  const sums = await tx.variantStockMovement.groupBy({
+    by: ["variantId", "type"],
+    where: { orderItemId: { in: itemIds }, type: { in: ["OUT", "IN"] } },
+    _sum: { qty: true },
+  });
+
+  const netByVariant = new Map<string, number>();
+
+  for (const row of sums) {
+    const signed =
+      row.type === "OUT" ? (row._sum.qty ?? 0) : -(row._sum.qty ?? 0);
+    netByVariant.set(
+      row.variantId,
+      (netByVariant.get(row.variantId) ?? 0) + signed,
+    );
+  }
+
+  // Movement pengembalian tetap ditautkan ke satu item nota supaya
+  // idempotensinya terjaga.
+  const firstItemByVariant = new Map<string, string>();
+
+  for (const item of items) {
+    if (item.variantId && !firstItemByVariant.has(item.variantId)) {
+      firstItemByVariant.set(item.variantId, item.id);
+    }
+  }
+
+  for (const [variantId, net] of netByVariant) {
+    if (net <= 0) {
+      continue;
+    }
+
+    await recordStockMovement(tx, {
+      variantId,
+      type: "IN",
+      qty: net,
+      orderItemId: firstItemByVariant.get(variantId) ?? null,
+      note: `Pengembalian stok — nota ${orderCode ?? orderId} batal/dihapus`,
+    });
+  }
+}

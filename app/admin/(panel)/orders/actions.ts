@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { deductIngredientsForOrder } from "@/lib/inventory";
 import { saveOrderCore, type SaveOrderResult } from "@/lib/order-save";
+import { restoreOrderVariantStock } from "@/lib/stock";
 import {
   ORDER_STATUSES,
   type OrderInput,
@@ -62,14 +63,23 @@ export async function deleteOrder(id: string): Promise<SimpleActionResult> {
 
     const order = await getPrisma().order.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, code: true, status: true },
     });
 
     if (!order) {
       return { ok: false, error: "Pesanan tidak ditemukan." };
     }
 
-    await getPrisma().order.delete({ where: { id } });
+    await getPrisma().$transaction(async (tx) => {
+      // Stok jadi yang sempat keluar dikembalikan dulu — kecuali sudah
+      // SELESAI (barang fisiknya sudah diambil) atau memang sudah dibatal.
+      if (order.status !== "SELESAI" && order.status !== "DIBATALKAN") {
+        await restoreOrderVariantStock(tx, order.id, order.code);
+      }
+
+      await tx.order.delete({ where: { id } });
+    }, TX_OPTIONS);
+
     revalidateOrders();
 
     return { ok: true };
@@ -91,6 +101,15 @@ export async function setOrderStatus(
     }
 
     await getPrisma().$transaction(async (tx) => {
+      const current = await tx.order.findUnique({
+        where: { id },
+        select: { code: true, status: true },
+      });
+
+      if (!current) {
+        throw new Error("Pesanan tidak ditemukan.");
+      }
+
       await tx.order.update({
         where: { id },
         data: { status },
@@ -102,6 +121,16 @@ export async function setOrderStatus(
       // jalur produksi.
       if (status === "SELESAI_PRODUKSI" || status === "SELESAI") {
         await deductIngredientsForOrder(tx, id);
+      }
+
+      // Pembatalan: barang jadi yang sempat keluar dari stok dikembalikan —
+      // kecuali sudah SELESAI (fisiknya sudah diambil pelanggan).
+      if (
+        status === "DIBATALKAN" &&
+        current.status !== "SELESAI" &&
+        current.status !== "DIBATALKAN"
+      ) {
+        await restoreOrderVariantStock(tx, id, current.code);
       }
     }, TX_OPTIONS);
 
