@@ -50,19 +50,28 @@ enum OrderStatus {
   DIBATALKAN
 }
 
+/// Cara pemenuhan pesanan produk: PRE_ORDER dibuat setelah pesanan masuk,
+/// READY dijual dari stok jadi yang tersedia hari ini.
+enum FulfillmentMode {
+  PRE_ORDER
+  READY
+}
+
 model Product {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  tagline     String
-  description String
-  image       String
-  features    String[] @default([])
-  customNote  String?
-  published   Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  name            String
+  tagline         String
+  description     String
+  image           String
+  features        String[]        @default([])
+  customNote      String?
+  published       Boolean         @default(true)
+  fulfillmentMode FulfillmentMode @default(PRE_ORDER)
+  sortOrder       Int             @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   variants    ProductVariant[]
   orderItems  OrderItem[]
@@ -85,11 +94,14 @@ model ProductVariant {
   tags        String[] @default([])
   published   Boolean  @default(true)
   sortOrder   Int      @default(0)
+  // Cached jumlah stok jadi siap jual; ledger variant_stock_movements = riwayat.
+  stockQty    Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems  OrderItem[]
-  recipeItems RecipeItem[]
+  orderItems     OrderItem[]
+  recipeItems    RecipeItem[]
+  stockMovements VariantStockMovement[]
 
   @@unique([productId, slug])
   @@index([productId, published, sortOrder])
@@ -270,4 +282,26 @@ model IngredientMovement {
   @@index([ingredientId, createdAt])
   @@index([orderId])
   @@map("ingredient_movements")
+}
+
+enum VariantStockMovementType {
+  IN // restock / pengembalian pembatalan
+  OUT // terpakai order (ambil hari ini)
+  ADJUST // koreksi manual ke nilai tertentu
+}
+
+model VariantStockMovement {
+  id          String                   @id @default(cuid())
+  variantId   String
+  variant     ProductVariant           @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  type        VariantStockMovementType
+  qty         Int // selalu positif; arah ditentukan type
+  // Penyebab movement (untuk delta saat order diedit & idempotensi).
+  orderItemId String?
+  note        String?
+  createdAt   DateTime                 @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([orderItemId])
+  @@map("variant_stock_movements")
 }
