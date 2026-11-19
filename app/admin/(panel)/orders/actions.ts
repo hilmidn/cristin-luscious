@@ -3,11 +3,10 @@
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
-import { deductIngredientsForOrder } from "@/lib/inventory";
+import { changeOrderStatus } from "@/lib/order-status";
 import { saveOrderCore, type SaveOrderResult } from "@/lib/order-save";
 import { restoreOrderVariantStock } from "@/lib/stock";
 import {
-  ORDER_STATUSES,
   type OrderInput,
   type OrderStatus,
 } from "@/lib/order-types";
@@ -95,55 +94,14 @@ export async function setOrderStatus(
 ): Promise<SimpleActionResult> {
   try {
     await requireAdmin();
+  } catch {
+    return { ok: false, error: "Sesi admin tidak valid. Silakan login ulang." };
+  }
 
-    if (!ORDER_STATUSES.includes(status)) {
-      return { ok: false, error: "Status tidak valid." };
-    }
-
-    await getPrisma().$transaction(async (tx) => {
-      const current = await tx.order.findUnique({
-        where: { id },
-        select: { code: true, status: true },
-      });
-
-      if (!current) {
-        throw new Error("Pesanan tidak ditemukan.");
-      }
-
-      // Batal = final: stok jadi sudah dikembalikan saat pembatalan; membuka
-      // lagi membuat ledger stok tidak cocok dengan item.
-      if (current.status === "DIBATALKAN" && status !== "DIBATALKAN") {
-        throw new Error(
-          "Pesanan yang sudah dibatalkan tidak bisa diubah statusnya. Buat pesanan baru bila keliru.",
-        );
-      }
-
-      await tx.order.update({
-        where: { id },
-        data: { status },
-        select: { id: true },
-      });
-
-      // Override manual ke SELESAI_PRODUKSI (atau lompat langsung ke SELESAI)
-      // juga memotong stok bahan, dengan guard delta yang sama seperti
-      // jalur produksi.
-      if (status === "SELESAI_PRODUKSI" || status === "SELESAI") {
-        await deductIngredientsForOrder(tx, id);
-      }
-
-      // Pembatalan: barang jadi yang sempat keluar dari stok dikembalikan —
-      // kecuali sudah SELESAI (fisiknya sudah diambil pelanggan).
-      if (
-        status === "DIBATALKAN" &&
-        current.status !== "SELESAI" &&
-        current.status !== "DIBATALKAN"
-      ) {
-        await restoreOrderVariantStock(tx, id, current.code);
-      }
-    }, TX_OPTIONS);
-
-    revalidateOrders(id);
-
+  try {
+    // Aturan bisnis (deduct bahan, restore stok, guard batal-final,
+    // revalidate) ada di lib/order-status.ts — dipakai juga endpoint mobile.
+    await changeOrderStatus(id, status);
     return { ok: true };
   } catch (error) {
     console.error("setOrderStatus", error);
