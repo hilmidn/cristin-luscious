@@ -288,3 +288,20 @@ export async function restoreOrderVariantStock(
     });
   }
 }
+
+/**
+ * Stok varian yang boleh dipesan dari web: varian + produknya published.
+ * Dipakai halaman /order (dipanggil per request — force-dynamic).
+ */
+export async function getPublishedVariantStockMap(): Promise<
+  Record<string, number>
+> {
+  const prisma = getPrisma();
+
+  const variants = await prisma.productVariant.findMany({
+    where: { published: true, product: { published: true } },
+    select: { id: true, stockQty: true },
+  });
+
+  return Object.fromEntries(variants.map((variant) => [variant.id, variant.stockQty]));
+}

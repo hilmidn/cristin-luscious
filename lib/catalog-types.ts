@@ -11,6 +11,8 @@ export type CatalogVariant = {
   description: string;
   /** Already formatted for display, e.g. "Rp 45.000 / 6 pcs". */
   price: string | null;
+  /** Angka mentah untuk kalkulasi client (order web). */
+  priceAmount: number | null;
   image: string;
   tags: string[];
 };

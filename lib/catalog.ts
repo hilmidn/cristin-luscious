@@ -53,6 +53,7 @@ function toCatalogProduct(product: ProductRow): CatalogProduct {
       name: variant.name,
       description: variant.description,
       price: formatPrice(variant.price, variant.priceUnit),
+      priceAmount: variant.price,
       image: variant.image,
       tags: variant.tags,
     })),
