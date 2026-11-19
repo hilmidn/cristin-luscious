@@ -1,5 +1,6 @@
 "use server";
 
+import { sendNewOrderNotification } from "@/lib/fcm";
 import { getPrisma } from "@/lib/prisma";
 import { saveOrderCore } from "@/lib/order-save";
 import type { OrderInput } from "@/lib/order-types";
@@ -80,6 +81,14 @@ export async function submitWebOrder(input: {
   if (!result.ok) {
     return { ok: false, error: result.error };
   }
+
+  // Notifikasi push ke app admin (fire-and-forget — checkout tidak boleh
+  // terganggu kalau FCM gagal / env belum diset).
+  void sendNewOrderNotification({
+    code: result.code,
+    customerName: input.customerName,
+    itemCount: input.items.length,
+  }).catch(() => undefined);
 
   return { ok: true, code: result.code };
 }
