@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Boxes,
   CalendarDays,
   ChefHat,
   Croissant,
@@ -41,6 +42,11 @@ export const adminNav: AdminNavGroup[] = [
         label: "Produk",
         href: "/admin/products",
         icon: Croissant,
+      },
+      {
+        label: "Stok Jadi",
+        href: "/admin/stock",
+        icon: Boxes,
       },
     ],
   },
