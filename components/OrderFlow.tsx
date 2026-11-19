@@ -61,6 +61,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
 
   const isPickupToday = date === today;
 
@@ -261,6 +262,19 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                   ? "Produk ready stock diambil dari stok hari ini. Produk pre-order perlu waktu pembuatan — pilih tanggal lain."
                   : `Semua item dibuat untuk diambil ${formatTanggal(date)}.`}
               </p>
+            </div>
+
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <h2 className="font-sans text-[9px] font-bold uppercase tracking-[0.28em] text-brand-text">
+                Isi Keranjang
+              </h2>
+              <button
+                onClick={() => setShowAdd(true)}
+                className="inline-flex items-center gap-1.5 border border-brand-border bg-brand-card px-3.5 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-dark transition-colors hover:border-brand-dark"
+              >
+                <Plus size={12} />
+                Tambah Produk
+              </button>
             </div>
 
             {rows.length === 0 && unavailableCount === 0 ? (
@@ -493,8 +507,157 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
               </div>
             </div>
           </div>
+
+          {showAdd && (
+            <AddProductSheet
+              products={products}
+              stock={stock}
+              isPickupToday={isPickupToday}
+              onClose={() => setShowAdd(false)}
+            />
+          )}
         </div>
       </div>
     </section>
   );
 }
+
+/// Bottom sheet picker: tambah varian lain langsung dari halaman checkout
+/// tanpa pindah ke detail produk. Stepper menulis langsung ke cart store —
+/// badge navbar & daftar keranjang ter-update live.
+function AddProductSheet({
+  products,
+  stock,
+  isPickupToday,
+  onClose,
+}: {
+  products: CatalogProduct[];
+  stock: Record<string, number>;
+  isPickupToday: boolean;
+  onClose: () => void;
+}) {
+  const snapshot = useSyncExternalStore(subscribeCart, getCartSnapshot, () => "");
+  const cart = useMemo(() => parseCartSnapshot(snapshot), [snapshot]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-brand-dark/40 backdrop-blur-xs sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto border border-brand-border bg-brand-bg sm:max-h-[90vh]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 flex items-center justify-between border-b border-brand-border bg-brand-bg px-5 py-4">
+          <h3 className="font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
+            Tambah Produk
+          </h3>
+          <button
+            onClick={onClose}
+            aria-label="Tutup"
+            className="p-1.5 text-brand-text transition-colors hover:text-brand-dark"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Daftar produk */}
+        <div>
+          {products.length === 0 && (
+            <p className="px-5 py-10 text-center font-sans text-[11px] text-brand-text">
+              Belum ada produk yang bisa dipesan online.
+            </p>
+          )}
+
+          {products.map((product) => (
+            <div key={product.id} className="border-b border-brand-border last:border-b-0">
+              <div className="flex items-center gap-3 border-b border-brand-border bg-brand-card px-4 py-3">
+                <span
+                  className="h-10 w-10 shrink-0 border border-brand-border bg-brand-bg bg-cover bg-center"
+                  style={{ backgroundImage: `url(${productImageSrc(product.image)})` }}
+                />
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-dark">
+                  {product.name}
+                </p>
+              </div>
+
+              <div className="divide-y divide-brand-border">
+                {product.variants.map((variant) => {
+                  const qty = cart[variant.id] ?? 0;
+                  const sisa = stock[variant.id] ?? 0;
+                  const fromStock = product.fulfillmentMode === "READY" && isPickupToday;
+                  const limit = fromStock ? sisa : MAX_WEB_QTY;
+                  const habis = qty === 0 && fromStock && sisa <= 0;
+
+                  return (
+                    <div key={variant.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="font-sans text-xs font-semibold text-brand-dark">
+                          {variant.name}
+                        </p>
+                        <p
+                          className={`font-mono text-[10px] ${
+                            habis ? "text-red-600" : "text-brand-text"
+                          }`}
+                        >
+                          {variant.price ?? "Harga menyusul"}
+                          {fromStock && (habis ? " · habis hari ini" : ` · sisa ${sisa}`)}
+                        </p>
+                      </div>
+
+                      {qty === 0 ? (
+                        <button
+                          onClick={() => setCartQty(variant.id, 1)}
+                          disabled={habis}
+                          className="shrink-0 border border-brand-dark bg-brand-dark px-3.5 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
+                        >
+                          Tambah
+                        </button>
+                      ) : (
+                        <div className="flex shrink-0 items-center border border-brand-border bg-brand-card">
+                          <button
+                            onClick={() => setCartQty(variant.id, qty - 1)}
+                            aria-label="Kurangi"
+                            className="px-2.5 py-2 text-brand-text transition-colors hover:text-brand-dark"
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span className="w-7 text-center font-mono text-xs font-semibold text-brand-dark">
+                            {qty}
+                          </span>
+                          <button
+                            onClick={() => setCartQty(variant.id, qty + 1)}
+                            disabled={qty >= limit}
+                            aria-label="Tambah"
+                            className="px-2.5 py-2 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 border-t border-brand-border bg-brand-bg px-5 py-4">
+          <button
+            onClick={onClose}
+            className="w-full border border-brand-dark bg-brand-dark px-5 py-3.5 font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark"
+          >
+            Selesai
+          </button>
+          <p className="mt-2 text-center font-sans text-[10px] text-brand-text">
+            Item langsung masuk keranjang.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
