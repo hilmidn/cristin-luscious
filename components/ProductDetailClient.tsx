@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ShoppingBag, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShoppingBag, Check, ChevronDown, MessageCircle } from "lucide-react";
 import {
   productImageSrc,
   type CatalogProduct,
@@ -296,8 +296,8 @@ export default function ProductDetailClient({
                 rel="noreferrer"
                 className="group flex-1 flex items-center justify-center gap-3 px-8 py-4 bg-brand-dark text-brand-bg font-semibold text-xs uppercase tracking-widest hover:bg-brand-text transition-all duration-500"
               >
-                <ShoppingBag size={14} />
-                <span>Order via WhatsApp</span>
+                <MessageCircle size={14} />
+                <span>Ask About This Product</span>
               </a>
               <Link
                 href="/#products"
