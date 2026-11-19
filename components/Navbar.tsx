@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Menu, X, Phone } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import CartBadge from "@/components/CartBadge";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -80,12 +82,13 @@ export default function Navbar() {
                 <span className="absolute bottom-0 left-0 w-0 h-px bg-brand-dark transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
-            <a
-              href="#contact"
+            <Link
+              href="/order"
               className="px-6 py-2 border border-brand-dark text-xs font-semibold uppercase tracking-widest text-brand-bg bg-brand-dark hover:bg-transparent hover:text-brand-dark hover:border-brand-text transition-all duration-500 rounded-none"
             >
               Order Now
-            </a>
+            </Link>
+            <CartBadge />
           </div>
 
           {/* Mobile Menu Button */}
@@ -144,7 +147,7 @@ export default function Navbar() {
             </a>
           ))}
           <a
-            href="#contact"
+            href="/order"
             onClick={() => setIsMobileMenuOpen(false)}
             className="mt-6 w-full text-center px-6 py-4 border border-brand-dark text-xs font-semibold uppercase tracking-widest text-brand-bg bg-brand-dark hover:bg-transparent hover:text-brand-dark transition-all duration-500"
           >

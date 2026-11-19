@@ -9,19 +9,27 @@ import {
   type CatalogProduct,
   type CatalogVariant,
 } from "@/lib/catalog-types";
+import { addToCart } from "@/lib/cart-store";
 
 interface Props {
   product: CatalogProduct;
   relatedProducts: CatalogProduct[];
+  /** variantId -> stok jadi hari ini (untuk tombol keranjang). */
+  stock?: Record<string, number>;
 }
 
-export default function ProductDetailClient({ product, relatedProducts }: Props) {
+export default function ProductDetailClient({
+  product,
+  relatedProducts,
+  stock,
+}: Props) {
   const [selectedVariant, setSelectedVariant] = useState<CatalogVariant | null>(
     product.variants?.[0] ?? null
   );
   const [expandedVariant, setExpandedVariant] = useState<string | null>(
     product.variants?.[0]?.id ?? null
   );
+  const [addedVariant, setAddedVariant] = useState<string | null>(null);
 
   const activeImage = productImageSrc(selectedVariant?.image || product.image);
   const activePrice = selectedVariant?.price ?? null;
@@ -244,6 +252,39 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
               <div className="pt-2">
                 <p className="text-[10px] tracking-widest uppercase text-brand-text font-sans">Harga Mulai</p>
                 <p className="font-playfair text-3xl font-bold text-brand-dark mt-1">{activePrice}</p>
+              </div>
+            )}
+
+            {/* Tambah ke keranjang — hanya produk orderable ber-varian */}
+            {product.orderable && product.hasVariants && selectedVariant && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    addToCart(selectedVariant.id, 1);
+                    setAddedVariant(selectedVariant.id);
+                  }}
+                  disabled={product.fulfillmentMode === "READY" && (stock?.[selectedVariant.id] ?? 0) <= 0}
+                  className="flex w-full items-center justify-center gap-3 px-8 py-4 border border-brand-dark bg-brand-card font-semibold text-xs uppercase tracking-widest text-brand-dark hover:bg-brand-dark hover:text-brand-bg transition-all duration-300 disabled:cursor-not-allowed disabled:border-brand-border disabled:text-brand-muted disabled:hover:bg-brand-card"
+                >
+                  <ShoppingBag size={14} />
+                  {product.fulfillmentMode === "READY" && (stock?.[selectedVariant.id] ?? 0) <= 0
+                    ? "Habis hari ini — pesan lewat tanggal lain"
+                    : "Tambah ke Keranjang"}
+                </button>
+
+                <p className="text-center font-sans text-[10px] tracking-wide text-brand-text">
+                  {product.fulfillmentMode === "READY"
+                    ? `Ready stock${stock?.[selectedVariant.id] !== undefined ? ` — sisa ${stock[selectedVariant.id]} hari ini` : ""}`
+                    : "Pre-order — pilih tanggal ambil saat checkout"}
+                  {addedVariant === selectedVariant.id && (
+                    <Link
+                      href="/order"
+                      className="ml-2 font-semibold text-brand-dark underline underline-offset-4 decoration-brand-border hover:decoration-brand-dark"
+                    >
+                      ✓ Ditambahkan — buka keranjang
+                    </Link>
+                  )}
+                </p>
               </div>
             )}
 

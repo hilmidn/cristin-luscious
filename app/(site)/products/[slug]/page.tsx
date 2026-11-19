@@ -3,6 +3,7 @@ import {
   getPublishedProducts,
   getRelatedProducts,
 } from "@/lib/catalog";
+import { getPublishedVariantStockMap } from "@/lib/stock";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
@@ -38,7 +39,10 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
-  const relatedProducts = await getRelatedProducts(product.slug);
+  const [relatedProducts, stockMap] = await Promise.all([
+    getRelatedProducts(product.slug),
+    getPublishedVariantStockMap(),
+  ]);
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-dark selection:bg-brand-dark selection:text-brand-bg">
@@ -46,6 +50,7 @@ export default async function ProductDetailPage({ params }: Props) {
       <ProductDetailClient
         product={product}
         relatedProducts={relatedProducts}
+        stock={stockMap}
       />
       <Footer />
     </div>

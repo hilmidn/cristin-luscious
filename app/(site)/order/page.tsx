@@ -19,7 +19,9 @@ export default async function OrderPage() {
 
   return (
     <PageFlow
-      products={products}
+      // Hanya produk yang boleh dipesan online dan punya varian — sisanya
+      // dipajang di katalog tapi dipesan via admin/WhatsApp.
+      products={products.filter((p) => p.orderable && p.hasVariants)}
       stock={stockMap}
       today={jakartaDateKey(new Date())}
     />
