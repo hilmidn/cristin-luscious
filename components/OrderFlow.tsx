@@ -12,7 +12,11 @@ import {
   setCartQty,
   subscribeCart,
 } from "@/lib/cart-store";
-import { productImageSrc, type CatalogProduct, type CatalogVariant } from "@/lib/catalog-types";
+import {
+  productImageSrc,
+  type CatalogProduct,
+  type CatalogVariant,
+} from "@/lib/catalog-types";
 import {
   getContactSnapshot,
   parseContactSnapshot,
@@ -61,7 +65,11 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
 
   // Keranjang = external store (localStorage) — React resinkron otomatis,
   // server snapshot kosong supaya hydration aman.
-  const cartSnapshot = useSyncExternalStore(subscribeCart, getCartSnapshot, () => "");
+  const cartSnapshot = useSyncExternalStore(
+    subscribeCart,
+    getCartSnapshot,
+    () => "",
+  );
   const cart = useMemo(() => parseCartSnapshot(cartSnapshot), [cartSnapshot]);
 
   const [customerName, setCustomerName] = useState("");
@@ -72,7 +80,11 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const [showAdd, setShowAdd] = useState(false);
 
   // Kontak terakhir tersimpan di localStorage — prefill nama & HP begitu ada.
-  const contactSnapshot = useSyncExternalStore(noopSubscribe, getContactSnapshot, () => "");
+  const contactSnapshot = useSyncExternalStore(
+    noopSubscribe,
+    getContactSnapshot,
+    () => "",
+  );
   const savedContact = useMemo(
     () => parseContactSnapshot(contactSnapshot),
     [contactSnapshot],
@@ -83,7 +95,10 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const isPickupToday = date === today;
 
   const variantIndex = useMemo(() => {
-    const map = new Map<string, { product: CatalogProduct; variant: CatalogVariant }>();
+    const map = new Map<
+      string,
+      { product: CatalogProduct; variant: CatalogVariant }
+    >();
 
     for (const product of products) {
       for (const variant of product.variants) {
@@ -98,14 +113,17 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
     return Object.entries(cart)
       .map(([variantId, quantity]) => {
         const found = variantIndex.get(variantId);
-        return found ? { variant: found.variant, product: found.product, quantity } : null;
+        return found
+          ? { variant: found.variant, product: found.product, quantity }
+          : null;
       })
       .filter((row): row is CartRow => row !== null);
   }, [cart, variantIndex]);
 
   const unavailableCount = useMemo(
     () =>
-      Object.keys(cart).filter((variantId) => !variantIndex.has(variantId)).length,
+      Object.keys(cart).filter((variantId) => !variantIndex.has(variantId))
+        .length,
     [cart, variantIndex],
   );
 
@@ -122,7 +140,8 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const hasUnpriced = rows.some((row) => row.variant.priceAmount === null);
 
   const shortage = rows.some(
-    (row) => usesStock(row.product) && row.quantity > (stock[row.variant.id] ?? 0),
+    (row) =>
+      usesStock(row.product) && row.quantity > (stock[row.variant.id] ?? 0),
   );
 
   const handleSubmit = () => {
@@ -144,7 +163,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
     }
 
     if (shortage) {
-      setError("Ada item yang stoknya tidak cukup untuk hari ini — kurangi jumlahnya.");
+      setError(
+        "Ada item yang stoknya tidak cukup untuk hari ini — kurangi jumlahnya.",
+      );
       return;
     }
 
@@ -207,19 +228,25 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             <div className="mt-8 space-y-2 border-t border-brand-border pt-6 text-left font-sans text-xs text-brand-text">
               <p>
                 <span className="uppercase tracking-[0.18em]">Nama</span>{" "}
-                <span className="float-right text-brand-dark">{effectiveName}</span>
+                <span className="float-right text-brand-dark">
+                  {effectiveName}
+                </span>
               </p>
               <p>
                 <span className="uppercase tracking-[0.18em]">Ambil pada</span>{" "}
-                <span className="float-right text-brand-dark">{formatTanggal(date)}</span>
+                <span className="float-right text-brand-dark">
+                  {formatTanggal(date)}
+                </span>
               </p>
               <p>
                 <span className="uppercase tracking-[0.18em]">Metode</span>{" "}
-                <span className="float-right text-brand-dark">Ambil di toko</span>
+                <span className="float-right text-brand-dark">Pickup</span>
               </p>
               <p>
                 <span className="uppercase tracking-[0.18em]">Pembayaran</span>{" "}
-                <span className="float-right text-brand-dark">Saat pengambilan</span>
+                <span className="float-right text-brand-dark">
+                  Saat pengambilan
+                </span>
               </p>
             </div>
 
@@ -330,7 +357,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                       <div className="flex items-start gap-4">
                         <span
                           className="h-16 w-16 shrink-0 border border-brand-border bg-brand-bg bg-cover bg-center"
-                          style={{ backgroundImage: `url(${productImageSrc(variant.image || product.image)})` }}
+                          style={{
+                            backgroundImage: `url(${productImageSrc(variant.image || product.image)})`,
+                          }}
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
@@ -357,7 +386,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                           <div className="mt-3 flex items-center justify-between gap-3">
                             <div className="flex items-center border border-brand-border bg-brand-bg">
                               <button
-                                onClick={() => setCartQty(variant.id, quantity - 1)}
+                                onClick={() =>
+                                  setCartQty(variant.id, quantity - 1)
+                                }
                                 aria-label="Kurangi"
                                 className="px-3 py-2 text-brand-text transition-colors hover:text-brand-dark"
                               >
@@ -367,7 +398,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                                 {quantity}
                               </span>
                               <button
-                                onClick={() => setCartQty(variant.id, quantity + 1)}
+                                onClick={() =>
+                                  setCartQty(variant.id, quantity + 1)
+                                }
                                 disabled={quantity >= limit}
                                 aria-label="Tambah"
                                 className="px-3 py-2 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
@@ -380,7 +413,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                               <p className="font-mono text-sm font-semibold text-brand-dark">
                                 {variant.priceAmount === null
                                   ? "—"
-                                  : formatRupiah(variant.priceAmount * quantity)}
+                                  : formatRupiah(
+                                      variant.priceAmount * quantity,
+                                    )}
                               </p>
                               <p
                                 className={`font-sans text-[9px] font-semibold uppercase tracking-[0.16em] ${
@@ -479,7 +514,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                       value={note}
                       onChange={(event) => setNote(event.target.value)}
                       rows={2}
-                      placeholder="Contoh: less sugar, ambil sore"
+                      placeholder="Contoh: ambil sore"
                       className={`${inputClass} resize-y`}
                       maxLength={500}
                     />
@@ -518,8 +553,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                   </button>
 
                   <p className="text-center font-sans text-[10px] leading-relaxed text-brand-text">
-                    Tanpa akun · Ambil di toko ({formatTanggal(date)}) · Bayar
-                    saat ambil
+                    · Pickup ({formatTanggal(date)}) · Bayar saat pickup
                   </p>
                 </div>
               </div>
@@ -554,7 +588,11 @@ function AddProductSheet({
   isPickupToday: boolean;
   onClose: () => void;
 }) {
-  const snapshot = useSyncExternalStore(subscribeCart, getCartSnapshot, () => "");
+  const snapshot = useSyncExternalStore(
+    subscribeCart,
+    getCartSnapshot,
+    () => "",
+  );
   const cart = useMemo(() => parseCartSnapshot(snapshot), [snapshot]);
 
   return (
@@ -589,11 +627,16 @@ function AddProductSheet({
           )}
 
           {products.map((product) => (
-            <div key={product.id} className="border-b border-brand-border last:border-b-0">
+            <div
+              key={product.id}
+              className="border-b border-brand-border last:border-b-0"
+            >
               <div className="flex items-center gap-3 border-b border-brand-border bg-brand-card px-4 py-3">
                 <span
                   className="h-10 w-10 shrink-0 border border-brand-border bg-brand-bg bg-cover bg-center"
-                  style={{ backgroundImage: `url(${productImageSrc(product.image)})` }}
+                  style={{
+                    backgroundImage: `url(${productImageSrc(product.image)})`,
+                  }}
                 />
                 <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-dark">
                   {product.name}
@@ -604,12 +647,16 @@ function AddProductSheet({
                 {product.variants.map((variant) => {
                   const qty = cart[variant.id] ?? 0;
                   const sisa = stock[variant.id] ?? 0;
-                  const fromStock = product.fulfillmentMode === "READY" && isPickupToday;
+                  const fromStock =
+                    product.fulfillmentMode === "READY" && isPickupToday;
                   const limit = fromStock ? sisa : MAX_WEB_QTY;
                   const habis = qty === 0 && fromStock && sisa <= 0;
 
                   return (
-                    <div key={variant.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div
+                      key={variant.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
                       <div className="min-w-0">
                         <p className="font-sans text-xs font-semibold text-brand-dark">
                           {variant.name}
@@ -620,7 +667,8 @@ function AddProductSheet({
                           }`}
                         >
                           {variant.price ?? "Harga menyusul"}
-                          {fromStock && (habis ? " · habis hari ini" : ` · sisa ${sisa}`)}
+                          {fromStock &&
+                            (habis ? " · habis hari ini" : ` · sisa ${sisa}`)}
                         </p>
                       </div>
 
@@ -678,4 +726,3 @@ function AddProductSheet({
     </div>
   );
 }
-
