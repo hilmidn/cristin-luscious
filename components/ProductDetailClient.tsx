@@ -195,9 +195,25 @@ export default function ProductDetailClient({
                               <p className="font-playfair text-sm font-semibold text-brand-dark">
                                 {v.name}
                               </p>
-                              <p className="font-sans text-[10px] text-brand-text mt-0.5">
-                                {v.price}
-                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="font-sans text-[10px] text-brand-text">
+                                  {v.price}
+                                </p>
+                                {product.fulfillmentMode === "READY" &&
+                                  stock?.[v.id] !== undefined && (
+                                    <span
+                                      className={`text-[8px] tracking-widest uppercase px-2 py-0.5 border ${
+                                        (stock[v.id] ?? 0) > 0
+                                          ? "bg-brand-card border-brand-border text-brand-dark"
+                                          : "bg-brand-bg border-brand-border text-brand-muted"
+                                      }`}
+                                    >
+                                      {(stock[v.id] ?? 0) > 0
+                                        ? `Stok ${stock[v.id]}`
+                                        : "Habis"}
+                                    </span>
+                                  )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
