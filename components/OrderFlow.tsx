@@ -281,8 +281,8 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             </span>
           </h1>
           <p className="mt-4 font-sans text-xs font-light leading-relaxed tracking-wide text-brand-text md:text-sm">
-            Periksa keranjang, isi nama dan nomor HP, lalu ambil langsung di
-            toko sesuai tanggal yang dipilih. Pembayaran saat pengambilan.
+            Periksa keranjang, isi nama dan nomor HP, lalu ambil langsung sesuai
+            tanggal yang dipilih. Pembayaran saat pengambilan.
           </p>
         </div>
 
