@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+
 import { sendNewOrderNotification } from "@/lib/fcm";
 import { getPrisma } from "@/lib/prisma";
 import { saveOrderCore } from "@/lib/order-save";
@@ -82,13 +84,16 @@ export async function submitWebOrder(input: {
     return { ok: false, error: result.error };
   }
 
-  // Notifikasi push ke app admin (fire-and-forget — checkout tidak boleh
-  // terganggu kalau FCM gagal / env belum diset).
-  void sendNewOrderNotification({
-    code: result.code,
-    customerName: input.customerName,
-    itemCount: input.items.length,
-  }).catch(() => undefined);
+  // Notifikasi push ke app admin — jalan SETELAH response checkout terkirim.
+  // after() menjamin promise selesai sebelum function serverless dibekukan
+  // (void-promise biasa bisa terpotong di Vercel, notif gagal diam-diam).
+  after(async () => {
+    await sendNewOrderNotification({
+      code: result.code,
+      customerName: input.customerName,
+      itemCount: input.items.length,
+    }).catch(() => undefined);
+  });
 
   return { ok: true, code: result.code };
 }
