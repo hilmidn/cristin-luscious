@@ -34,6 +34,9 @@ function readServiceAccount(): ServiceAccount | null {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (!raw) {
+    console.warn(
+      "[fcm] FIREBASE_SERVICE_ACCOUNT_JSON belum diset — notifikasi di-skip.",
+    );
     return null;
   }
 
