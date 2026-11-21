@@ -1,6 +1,7 @@
 import AOSInit from "@/components/AOSInit";
 import Preloader from "@/components/Preloader";
 import FloatingCartBar from "@/components/FloatingCartBar";
+import PageTracker from "@/components/PageTracker";
 
 export default function SiteLayout({
   children,
@@ -11,6 +12,7 @@ export default function SiteLayout({
     <>
       <AOSInit />
       <Preloader />
+      <PageTracker />
       {children}
       <FloatingCartBar />
     </>

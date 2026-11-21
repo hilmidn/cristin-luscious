@@ -35,6 +35,11 @@ export const adminNav: AdminNavGroup[] = [
         href: "/admin",
         icon: LayoutDashboard,
       },
+      {
+        label: "Pengunjung",
+        href: "/admin/analytics",
+        icon: BarChart3,
+      },
     ],
   },
   {
