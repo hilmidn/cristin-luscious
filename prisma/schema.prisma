@@ -318,3 +318,19 @@ model VariantStockMovement {
   @@index([orderItemId])
   @@map("variant_stock_movements")
 }
+
+/// Visitor tracker anonim: path + referrer + device + session cookie.
+/// Tidak menyimpan IP/PII — cukup untuk dashboard admin.
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  referrer  String?
+  device    String // mobile | tablet | desktop
+  sessionId String // uuid anon dari cookie, bukan identitas
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path, createdAt])
+  @@index([sessionId])
+  @@map("page_views")
+}
