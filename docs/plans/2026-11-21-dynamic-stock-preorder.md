@@ -1,6 +1,6 @@
 # Plan: Stok Dinamis dan Pre-order Otomatis
 
-Tanggal: 2026-11-21 · Status: Rencana disepakati; implementasi belum dimulai
+Tanggal: 2026-11-21 · Status: Batch 1 selesai; migration diterapkan dan diverifikasi.
 
 ## Tujuan
 
@@ -91,6 +91,15 @@ memberi klasifikasi historis secara diam-diam.
   kode baru belum sepenuhnya menggunakannya; hapus `Product.fulfillmentMode`
   dan enum hanya setelah consumer lama tidak lagi membacanya.
 - Pertahankan `ProductVariant.stockQty` dan ledger `VariantStockMovement`.
+
+Progress implementasi Batch 1:
+
+- Audit read-only menemukan 58 item: 1 memiliki bukti stok, 57 memiliki task
+  produksi, dan tidak ada konflik atau item tanpa bukti.
+- Kedua migration diterapkan. Backfill terverifikasi menghasilkan 1 `STOCK`
+  dan 57 `PRE_ORDER`, tanpa baris konflik atau tanpa bukti.
+- `Product.fulfillmentMode` tetap dipertahankan sementara sesuai expand-contract;
+  penghapusan menunggu consumer lama dimigrasikan pada batch berikutnya.
 
 ### Batch 2 — Logika pesanan, stok, dan produksi
 

@@ -8,9 +8,9 @@
  *   KONFLIK   : punya keduanya (item pernah diedit klasifikasinya) -> ditinjau
  *   TANPA BUKTI: tidak ada task maupun movement OUT -> ditinjau
  *
- * Migration backfill mengisi PRE_ORDER/STOCK dan membiarkan KONFLIK/TANPA
- * BUKTI tetap NULL — daftarnya dicetak di bagian akhir supaya bisa ditinjau
- * satu per satu sebelum kolom dibuat wajib.
+ * Script ini dapat dijalankan sebelum maupun sesudah migration Batch 1.
+ * KONFLIK/TANPA BUKTI harus ditinjau manual; timestamp pembuatan task bukan
+ * bukti yang cukup untuk memilih fulfillment terakhir.
  *
  * Jalankan di mesin yang punya .env.local / .env dengan DATABASE_URL:
  *   npx tsx scripts/audit-fulfillment.ts
@@ -49,9 +49,8 @@ async function main() {
       productName: true,
       variantName: true,
       quantity: true,
-      fulfillmentType: true,
       order: { select: { code: true, status: true, scheduledAt: true } },
-      productionTask: { select: { createdAt: true } },
+      productionTask: { select: { id: true } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -61,24 +60,18 @@ async function main() {
   const movements = itemIds.length
     ? await prisma.variantStockMovement.findMany({
         where: { orderItemId: { in: itemIds } },
-        select: { orderItemId: true, type: true, createdAt: true },
+        select: { orderItemId: true, type: true },
       })
     : [];
 
   const outCount = new Map<string, number>();
   const otherCount = new Map<string, number>();
-  const lastOutAt = new Map<string, Date>();
-  const lastTaskAt = new Map<string, Date>();
 
   for (const move of movements) {
     if (!move.orderItemId) continue;
 
     if (move.type === "OUT") {
       outCount.set(move.orderItemId, (outCount.get(move.orderItemId) ?? 0) + 1);
-      const sebelum = lastOutAt.get(move.orderItemId);
-      if (!sebelum || move.createdAt > sebelum) {
-        lastOutAt.set(move.orderItemId, move.createdAt);
-      }
     } else {
       otherCount.set(
         move.orderItemId,
@@ -87,11 +80,27 @@ async function main() {
     }
   }
 
-  for (const item of items) {
-    if (item.productionTask) {
-      lastTaskAt.set(item.id, item.productionTask.createdAt);
-    }
-  }
+  const columnCheck = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = current_schema()
+        AND table_name = 'order_items'
+        AND column_name = 'fulfillmentType'
+    ) AS "exists"
+  `;
+  const hasFulfillmentTypeColumn = columnCheck[0]?.exists ?? false;
+  const fulfillmentRows = hasFulfillmentTypeColumn
+    ? await prisma.$queryRaw<
+        Array<{ id: string; fulfillmentType: string | null }>
+      >`
+        SELECT id, "fulfillmentType"
+        FROM "order_items"
+      `
+    : [];
+  const fulfillmentByItem = new Map(
+    fulfillmentRows.map((row) => [row.id, row.fulfillmentType]),
+  );
 
   const jumlah = {
     STOCK: 0,
@@ -141,6 +150,9 @@ async function main() {
     perStatus.set(statusKey, rowStatus);
 
     if (kategori === "KONFLIK" || kategori === "TANPA_BUKTI") {
+      const fulfillmentType = hasFulfillmentTypeColumn
+        ? (fulfillmentByItem.get(item.id) ?? "NULL")
+        : "BELUM_ADA_KOLOM";
       perluTinjau.push({
         kode: item.order.code,
         status: item.order.status,
@@ -149,7 +161,7 @@ async function main() {
         varian: item.variantName,
         qty: item.quantity,
         kategori,
-        fulfillmentType: item.fulfillmentType ?? "NULL",
+        fulfillmentType,
         task: hasTask ? 1 : 0,
         out: outCount.get(item.id) ?? 0,
         lain: otherCount.get(item.id) ?? 0,
@@ -176,16 +188,19 @@ async function main() {
     );
   }
 
-  // Kolom fulfillmentType (setelah migration dijalankan): distribusinya harus
-  // cocok dengan kategori bukti; NULL tersisa = KONFLIK + TANPA BUKTI.
+  // Setelah migration Batch 1, nilainya dapat dibandingkan dengan hasil audit.
   const kolom = new Map<string, number>();
-  for (const item of items) {
-    const key = item.fulfillmentType ?? "NULL";
+  for (const row of fulfillmentRows) {
+    const key = row.fulfillmentType ?? "NULL";
     kolom.set(key, (kolom.get(key) ?? 0) + 1);
   }
   console.log("\n=== Kolom OrderItem.fulfillmentType saat ini ===");
-  for (const [key, count] of [...kolom.entries()].sort()) {
-    console.log(`${key.padEnd(12)} : ${count}`);
+  if (!hasFulfillmentTypeColumn) {
+    console.log("BELUM_DIMIGRASIKAN: kolom belum tersedia");
+  } else {
+    for (const [key, count] of [...kolom.entries()].sort()) {
+      console.log(`${key.padEnd(12)} : ${count}`);
+    }
   }
 
   if (perluTinjau.length > 0) {
@@ -221,9 +236,20 @@ async function main() {
   }
 
   console.log(
-    "\nCatatan: migration backfill mengisi PRE_ORDER/STOCK dari bukti terakhir;",
-    "baris KONFLIK dan TANPA BUKTI sengaja dibiarkan NULL untuk ditinjau manual.",
+    "\nCatatan: hanya item dengan satu jenis bukti yang dapat di-backfill otomatis;",
+    "KONFLIK dan TANPA BUKTI perlu ditinjau manual.",
   );
 }
 
-void main();
+async function runAudit() {
+  try {
+    await main();
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+runAudit().catch((error: unknown) => {
+  console.error("Audit fulfillment gagal:", error);
+  process.exitCode = 1;
+});
