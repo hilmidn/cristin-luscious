@@ -1,5 +1,6 @@
 import { ApiError, apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { adjustVariantStock, restockVariant } from "@/lib/stock";
+import { revalidateVariantStockCache } from "@/lib/stock-revalidate";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,9 @@ export async function POST(request: Request) {
     } else {
       await adjustVariantStock(variantId, qtyRaw, note || null);
     }
+
+    // Chip stok di halaman detail publik (ISR) ikut di-purge.
+    await revalidateVariantStockCache([variantId]);
 
     return Response.json({ ok: true });
   } catch (error) {

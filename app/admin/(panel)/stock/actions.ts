@@ -8,6 +8,7 @@ import {
   getVariantMovements,
   restockVariant,
 } from "@/lib/stock";
+import { revalidateVariantStockCache } from "@/lib/stock-revalidate";
 import type { StockMovementRow } from "@/lib/stock-types";
 
 export type SimpleActionResult = { ok: true } | { ok: false; error: string };
@@ -20,9 +21,12 @@ async function requireAdmin() {
   }
 }
 
-function revalidateStock() {
+async function revalidateStock(variantIds: string[]) {
   revalidatePath("/admin/stock");
   revalidatePath("/admin");
+  // Chip stok di halaman detail produk publik (ISR) ikut di-purge supaya
+  // tidak perlu refresh 2x setelah restock/koreksi.
+  await revalidateVariantStockCache(variantIds);
 }
 
 export async function restockAction(
@@ -38,7 +42,7 @@ export async function restockAction(
 
   try {
     await restockVariant(variantId, qty, note || null);
-    revalidateStock();
+    await revalidateStock([variantId]);
     return { ok: true };
   } catch (error) {
     console.error("restockAction", error);
@@ -62,7 +66,7 @@ export async function adjustStockAction(
 
   try {
     await adjustVariantStock(variantId, targetQty, note || null);
-    revalidateStock();
+    await revalidateStock([variantId]);
     return { ok: true };
   } catch (error) {
     console.error("adjustStockAction", error);
