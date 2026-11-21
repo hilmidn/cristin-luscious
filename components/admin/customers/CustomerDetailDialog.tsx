@@ -1,11 +1,10 @@
 "Change note: Customer detail modal with order history and new order shortcut"
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { formatRupiah, formatOrderDate } from "@/lib/order-types";
 import type { CustomerSummary } from "@/lib/customer-types";
-import { ShoppingBag, Phone, MapPin, Calendar, ExternalLink, X } from "lucide-react";
+import { ShoppingBag, Phone, MapPin, ExternalLink, X } from "lucide-react";
 
 type CustomerDetailDialogProps = {
   customer: CustomerSummary | null;

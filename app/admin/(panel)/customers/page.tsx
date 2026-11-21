@@ -1,5 +1,6 @@
 import PageHeading from "@/components/admin/PageHeading";
 import { CustomerTable } from "@/components/admin/customers/CustomerTable";
+import { CUSTOMER_SORT_KEYS } from "@/lib/customer-types";
 import { getCustomers } from "@/lib/customers";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const customers = await getCustomers({
     q: params.q,
-    sort: params.sort as any,
+    sort: CUSTOMER_SORT_KEYS.find((value) => value === params.sort),
   });
 
   return (

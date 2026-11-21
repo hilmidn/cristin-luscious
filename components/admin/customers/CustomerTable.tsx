@@ -5,7 +5,7 @@ import { useState } from "react";
 import { formatRupiah, formatOrderDate } from "@/lib/order-types";
 import type { CustomerSummary } from "@/lib/customer-types";
 import { CustomerDetailDialog } from "./CustomerDetailDialog";
-import { Search, ArrowUpDown, Phone, MapPin, ShoppingBag, Eye, UserPlus } from "lucide-react";
+import { Search, ArrowUpDown, Phone, MapPin, Eye, UserPlus } from "lucide-react";
 import Link from "next/link";
 
 type CustomerTableProps = {

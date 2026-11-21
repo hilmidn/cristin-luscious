@@ -13,7 +13,16 @@ export type CustomerSummary = {
   orders: AdminOrder[];
 };
 
+export const CUSTOMER_SORT_KEYS = [
+  "spent_desc",
+  "orders_desc",
+  "latest_desc",
+  "name_asc",
+] as const;
+
+export type CustomerSortKey = (typeof CUSTOMER_SORT_KEYS)[number];
+
 export type CustomerFilterOptions = {
   q?: string;
-  sort?: "spent_desc" | "orders_desc" | "latest_desc" | "name_asc";
+  sort?: CustomerSortKey;
 };
