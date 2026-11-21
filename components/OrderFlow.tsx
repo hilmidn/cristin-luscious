@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import { submitWebOrder } from "@/app/(site)/order/actions";
 import {
@@ -78,6 +85,8 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showCheckoutShortcut, setShowCheckoutShortcut] = useState(false);
+  const customerInfoRef = useRef<HTMLDivElement>(null);
 
   // Kontak terakhir tersimpan di localStorage — prefill nama & HP begitu ada.
   const contactSnapshot = useSyncExternalStore(
@@ -143,6 +152,28 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
     (row) =>
       usesStock(row.product) && row.quantity > (stock[row.variant.id] ?? 0),
   );
+
+  useEffect(() => {
+    const customerInfo = customerInfoRef.current;
+    if (!customerInfo) return;
+
+    const updateShortcutVisibility = () => {
+      setShowCheckoutShortcut(
+        customerInfo.getBoundingClientRect().top > window.innerHeight,
+      );
+    };
+
+    updateShortcutVisibility();
+    window.addEventListener("scroll", updateShortcutVisibility, {
+      passive: true,
+    });
+    window.addEventListener("resize", updateShortcutVisibility);
+
+    return () => {
+      window.removeEventListener("scroll", updateShortcutVisibility);
+      window.removeEventListener("resize", updateShortcutVisibility);
+    };
+  }, [cartSnapshot]);
 
   const handleSubmit = () => {
     setError(null);
@@ -264,7 +295,13 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
 
   // =========================== CHECKOUT ===========================
   return (
-    <section className="relative bg-brand-bg py-24 md:py-32">
+    <section
+      className={`relative bg-brand-bg py-24 md:py-32 ${
+        showCheckoutShortcut && rows.length > 0
+          ? "pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-32"
+          : ""
+      }`}
+    >
       <div className="pointer-events-none absolute left-0 top-0 h-full w-1/4 border-r border-brand-border/40" />
       <div className="pointer-events-none absolute right-0 top-0 h-full w-1/4 border-l border-brand-border/40" />
 
@@ -459,7 +496,12 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
           </div>
 
           {/* ── Data pemesan + submit ── */}
-          <div className="lg:sticky lg:top-24 lg:self-start">
+          <div
+            id="customer-info"
+            ref={customerInfoRef}
+            tabIndex={-1}
+            className="scroll-mt-6 lg:sticky lg:top-24 lg:self-start"
+          >
             <div className="border border-brand-border bg-brand-card">
               <div className="border-b border-brand-border px-5 py-4">
                 <h2 className="flex items-center gap-2 font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
@@ -570,6 +612,28 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
           )}
         </div>
       </div>
+
+      {showCheckoutShortcut && !showAdd && rows.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-border bg-brand-bg/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-8px_24px_rgba(28,27,25,0.08)] backdrop-blur-sm lg:hidden">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-sans text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-text">
+                {cartTotalQty(cart)} item
+              </p>
+              <p className="truncate font-playfair text-lg font-bold text-brand-dark">
+                {hasUnpriced ? "Dikonfirmasi admin" : formatRupiah(total)}
+              </p>
+            </div>
+            <a
+              href="#customer-info"
+              aria-controls="customer-info"
+              className="flex shrink-0 items-center justify-center gap-2 border border-brand-dark bg-brand-dark px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark"
+            >
+              Data Pemesan
+            </a>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

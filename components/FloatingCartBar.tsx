@@ -23,8 +23,16 @@ export default function FloatingCartBar() {
     return null;
   }
 
+  const isProductPage = pathname.startsWith("/products/");
+
   return (
-    <div className="fixed inset-x-4 bottom-4 z-30 sm:bottom-6 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-md sm:-translate-x-1/2">
+    <div
+      className={`fixed inset-x-4 z-30 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-md sm:-translate-x-1/2 ${
+        isProductPage
+          ? "bottom-[calc(6rem+env(safe-area-inset-bottom))] sm:bottom-24 lg:bottom-6"
+          : "bottom-4 sm:bottom-6"
+      }`}
+    >
       <Link
         href="/order"
         className="flex items-center justify-between gap-4 border border-brand-dark bg-brand-dark px-5 py-4 text-brand-bg shadow-2xl transition-colors hover:bg-brand-card hover:text-brand-dark"

@@ -14,7 +14,7 @@ export default function ProductList({ products }: ProductListProps) {
   return (
     <section
       id="products"
-      className="relative py-24 md:py-36 bg-brand-bg text-brand-dark overflow-hidden border-t border-brand-border"
+      className="relative py-16 md:py-36 bg-brand-bg text-brand-dark overflow-hidden border-t border-brand-border"
     >
       {/* Decorative vertical lines and accents */}
       <div className="absolute left-0 top-0 w-1/4 h-full border-r border-brand-border/40 pointer-events-none" />
@@ -23,24 +23,23 @@ export default function ProductList({ products }: ProductListProps) {
       <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10">
         {/* Section Header */}
         <div
-          className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-6"
+          className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-24 gap-6"
           data-aos="fade-up"
         >
           <div className="max-w-xl">
             <span className="text-xs font-semibold tracking-[0.4em] uppercase text-brand-text block mb-3">
-              The Collection
+              Katalog
             </span>
             <h2 className="font-playfair text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tight text-brand-dark leading-none">
-              Artisan <br />
+              Pilih <br />
               <span className="font-script text-3xl md:text-5xl text-brand-text font-light tracking-wide block lowercase mt-2">
-                creations
+                menu favoritmu
               </span>
             </h2>
           </div>
           <div>
             <p className="max-w-sm font-sans text-xs md:text-sm text-brand-text font-light leading-relaxed tracking-wide">
-              An elegant curation of fine patisserie categories, handcrafted
-              daily to deliver unmatched luxury and aesthetic charm.
+              Lihat detail produk dan pilih varian yang paling kamu suka.
             </p>
           </div>
         </div>
@@ -123,26 +122,18 @@ export default function ProductList({ products }: ProductListProps) {
                   </div>
 
                   {/* Action Link */}
-                  <div className="pt-4 flex justify-between items-center text-xs tracking-widest uppercase font-semibold text-brand-dark group-hover:text-brand-muted transition-colors">
-                    <span className="flex items-center gap-4">
-                      <Link href={`/products/${product.slug}`}>Lihat Detail</Link>
-                      <Link
-                        href="/order"
-                        className="underline underline-offset-4 decoration-brand-border hover:decoration-brand-dark"
-                      >
-                        Pesan
-                      </Link>
-                    </span>
-                    <Link
-                      href={`/products/${product.slug}`}
-                      className="w-8 h-8 rounded-full border border-brand-border group-hover:border-brand-text flex items-center justify-center transition-colors duration-500"
-                    >
+                  <Link
+                    href={`/products/${product.slug}`}
+                    className="pt-4 flex justify-between items-center text-xs tracking-widest uppercase font-semibold text-brand-dark group-hover:text-brand-muted transition-colors"
+                  >
+                    <span>Lihat Detail</span>
+                    <span className="w-8 h-8 rounded-full border border-brand-border group-hover:border-brand-text flex items-center justify-center transition-colors duration-500">
                       <ArrowUpRight
                         size={14}
                         className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300"
                       />
-                    </Link>
-                  </div>
+                    </span>
+                  </Link>
                 </div>
               </div>
             );

@@ -83,10 +83,10 @@ export default function Navbar() {
               </a>
             ))}
             <Link
-              href="/order"
+              href="/#products"
               className="px-6 py-2 border border-brand-dark text-xs font-semibold uppercase tracking-widest text-brand-bg bg-brand-dark hover:bg-transparent hover:text-brand-dark hover:border-brand-text transition-all duration-500 rounded-none"
             >
-              Order Now
+              Lihat Menu
             </Link>
             <CartBadge />
           </div>
@@ -146,13 +146,13 @@ export default function Navbar() {
               {link.name}
             </a>
           ))}
-          <a
-            href="/order"
+          <Link
+            href="/#products"
             onClick={() => setIsMobileMenuOpen(false)}
             className="mt-6 w-full text-center px-6 py-4 border border-brand-dark text-xs font-semibold uppercase tracking-widest text-brand-bg bg-brand-dark hover:bg-transparent hover:text-brand-dark transition-all duration-500"
           >
-            Order Now
-          </a>
+            Lihat Menu
+          </Link>
         </div>
 
         {/* Footer info inside drawer */}

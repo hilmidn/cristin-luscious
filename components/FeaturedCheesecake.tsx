@@ -109,10 +109,10 @@ export default function FeaturedCheesecake() {
                 </p>
               </div>
               <a
-                href="#contact"
+                href="#products"
                 className="w-full sm:w-auto px-8 py-4 bg-brand-dark text-brand-bg font-semibold text-xs uppercase tracking-widest hover:bg-white hover:text-brand-dark border border-brand-dark hover:border-brand-text transition-all duration-500 text-center rounded-none"
               >
-                Order Signature
+                Lihat Menu
               </a>
             </div>
           </div>

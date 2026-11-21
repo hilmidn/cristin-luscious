@@ -27,17 +27,29 @@ export default function ProductDetailClient({
     product.variants?.[0] ?? null
   );
   const [expandedVariant, setExpandedVariant] = useState<string | null>(
-    product.variants?.[0]?.id ?? null
+    null
   );
   const [addedVariant, setAddedVariant] = useState<string | null>(null);
 
-  const activeImage = productImageSrc(selectedVariant?.image || product.image);
+  const activeImage = productImageSrc(
+    selectedVariant?.image.trim() ? selectedVariant.image : product.image,
+  );
   const activePrice = selectedVariant?.price ?? null;
+  const isSelectedOutOfStock =
+    product.fulfillmentMode === "READY" &&
+    (stock?.[selectedVariant?.id ?? ""] ?? 0) <= 0;
+
+  const handleAddToCart = () => {
+    if (!selectedVariant) return;
+
+    addToCart(selectedVariant.id, 1);
+    setAddedVariant(selectedVariant.id);
+  };
 
   return (
-    <main className="pt-28 pb-24">
+    <main className="pt-24 pb-32 lg:pt-28 lg:pb-24">
       {/* ── Breadcrumb ── */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-10">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-6 lg:mb-10">
         <div className="flex items-center gap-2 text-[10px] tracking-widest uppercase text-brand-text font-sans">
           <Link href="/" className="hover:text-brand-dark transition-colors">Home</Link>
           <span>/</span>
@@ -49,11 +61,11 @@ export default function ProductDetailClient({
 
       {/* ── Hero Split ── */}
       <section className="max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-16 items-start">
 
           {/* Left: Sticky Image */}
           <div className="lg:col-span-6 lg:sticky lg:top-28">
-            <div className="relative w-full aspect-square overflow-hidden border border-brand-border group bg-brand-card">
+            <div className="relative w-full aspect-[4/3] sm:aspect-square overflow-hidden border border-brand-border group bg-brand-card">
               {/* Decorative offset frame */}
               <div className="absolute inset-0 border border-brand-border translate-x-3 translate-y-3 -z-10 pointer-events-none" />
               <Image
@@ -77,10 +89,13 @@ export default function ProductDetailClient({
 
             {/* Variant thumbnail strip (for products with variants) */}
             {product.hasVariants && product.variants && (
-              <div className="mt-4 grid grid-cols-4 gap-3">
+              <div className="mt-4 hidden grid-cols-4 gap-3 lg:grid">
                 {product.variants.map((v) => (
                   <button
                     key={v.id}
+                    type="button"
+                    aria-label={`Pilih varian ${v.name}`}
+                    aria-pressed={selectedVariant?.id === v.id}
                     onClick={() => {
                       setSelectedVariant(v);
                       setExpandedVariant(v.id);
@@ -92,11 +107,13 @@ export default function ProductDetailClient({
                     }`}
                   >
                     <Image
-                      src={productImageSrc(v.image)}
-                      alt={v.name}
+                      src={productImageSrc(
+                        v.image.trim() ? v.image : product.image,
+                      )}
+                      alt=""
                       fill
                       className="object-cover"
-                      sizes="10vw"
+                      sizes="64px"
                     />
                   </button>
                 ))}
@@ -105,18 +122,18 @@ export default function ProductDetailClient({
           </div>
 
           {/* Right: Product Info */}
-          <div className="lg:col-span-6 flex flex-col space-y-8">
+          <div className="lg:col-span-6 flex flex-col space-y-4 sm:space-y-6 lg:space-y-8">
 
             {/* Product header */}
             <div>
-              <span className="text-[10px] tracking-[0.4em] uppercase text-brand-text font-semibold font-sans block mb-3">
+              <span className="hidden text-[10px] tracking-[0.4em] uppercase text-brand-text font-semibold font-sans sm:mb-3 sm:block">
                 Cristin&apos;s Luscious — {product.slug.replace(/-/g, " ")}
               </span>
-              <h1 className="font-playfair text-4xl md:text-5xl font-bold uppercase tracking-tight text-brand-dark leading-tight">
+              <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl font-bold uppercase tracking-tight text-brand-dark leading-tight">
                 {product.name}
               </h1>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 <span
                   className={`px-2.5 py-1 text-[9px] font-semibold tracking-widest uppercase font-sans border ${
                     product.fulfillmentMode === "READY"
@@ -126,37 +143,22 @@ export default function ProductDetailClient({
                 >
                   {product.fulfillmentMode === "READY" ? "Ready Stock" : "Pre-order"}
                 </span>
-                <Link
-                  href="/order"
-                  className="text-[10px] tracking-widest uppercase font-semibold text-brand-text underline underline-offset-4 decoration-brand-border transition-colors hover:text-brand-dark hover:decoration-brand-dark"
-                >
-                  Pesan via Web
-                </Link>
+                {product.orderable && product.hasVariants && (
+                  <a
+                    href="#product-variants"
+                    className="text-[10px] tracking-widest uppercase font-semibold text-brand-text underline underline-offset-4 decoration-brand-border transition-colors hover:text-brand-dark hover:decoration-brand-dark"
+                  >
+                    Pilih Varian
+                  </a>
+                )}
               </div>
 
-              <div className="w-16 h-px bg-brand-border mt-5" />
-            </div>
-
-            {/* Product description */}
-            <p className="font-sans text-sm md:text-base text-brand-text font-light leading-relaxed">
-              {product.description}
-            </p>
-
-            {/* Feature pills */}
-            <div className="flex flex-wrap gap-2">
-              {product.features.map((f, i) => (
-                <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-border bg-brand-card">
-                  <Check size={10} className="text-brand-dark shrink-0" />
-                  <span className="text-[9px] font-semibold tracking-widest uppercase text-brand-text">
-                    {f}
-                  </span>
-                </div>
-              ))}
+              <div className="w-16 h-px bg-brand-border mt-4" />
             </div>
 
             {/* ── VARIANTS SECTION ── */}
             {product.hasVariants && product.variants ? (
-              <div className="space-y-3">
+              <div id="product-variants" className="space-y-3 scroll-mt-6">
                 <h2 className="text-[10px] tracking-[0.4em] uppercase font-semibold text-brand-text font-sans">
                   Pilih Varian
                 </h2>
@@ -176,13 +178,26 @@ export default function ProductDetailClient({
                       >
                         {/* Variant header — click to expand and select */}
                         <button
-                          className="w-full flex items-center justify-between p-4 text-left"
+                          type="button"
+                          aria-pressed={isSelected}
+                          className="w-full flex items-center justify-between p-4 text-left scroll-mb-[calc(6rem+env(safe-area-inset-bottom))] lg:scroll-mb-0"
                           onClick={() => {
                             setSelectedVariant(v);
                             setExpandedVariant(isOpen && isSelected ? null : v.id);
                           }}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="relative h-14 w-14 shrink-0 overflow-hidden border border-brand-border bg-brand-bg lg:hidden">
+                              <Image
+                                src={productImageSrc(
+                                  v.image.trim() ? v.image : product.image,
+                                )}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="56px"
+                              />
+                            </span>
                             {/* Radio indicator */}
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                               isSelected ? "border-brand-dark" : "border-brand-border"
@@ -263,27 +278,42 @@ export default function ProductDetailClient({
               )
             )}
 
+            {/* Product description */}
+            <p className="font-sans text-sm md:text-base text-brand-text font-light leading-relaxed">
+              {product.description}
+            </p>
+
+            {/* Feature pills */}
+            <div className="flex flex-wrap gap-2">
+              {product.features.map((f, i) => (
+                <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 border border-brand-border bg-brand-card">
+                  <Check size={10} className="text-brand-dark shrink-0" />
+                  <span className="text-[9px] font-semibold tracking-widest uppercase text-brand-text">
+                    {f}
+                  </span>
+                </div>
+              ))}
+            </div>
+
             {/* Price display */}
             {activePrice && (
               <div className="pt-2">
-                <p className="text-[10px] tracking-widest uppercase text-brand-text font-sans">Harga Mulai</p>
+                <p className="text-[10px] tracking-widest uppercase text-brand-text font-sans">Harga</p>
                 <p className="font-playfair text-3xl font-bold text-brand-dark mt-1">{activePrice}</p>
               </div>
             )}
 
             {/* Tambah ke keranjang — hanya produk orderable ber-varian */}
             {product.orderable && product.hasVariants && selectedVariant && (
-              <div className="space-y-2">
+              <div className="hidden space-y-2 lg:block">
                 <button
-                  onClick={() => {
-                    addToCart(selectedVariant.id, 1);
-                    setAddedVariant(selectedVariant.id);
-                  }}
-                  disabled={product.fulfillmentMode === "READY" && (stock?.[selectedVariant.id] ?? 0) <= 0}
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={isSelectedOutOfStock}
                   className="flex w-full items-center justify-center gap-3 px-8 py-4 border border-brand-dark bg-brand-card font-semibold text-xs uppercase tracking-widest text-brand-dark hover:bg-brand-dark hover:text-brand-bg transition-all duration-300 disabled:cursor-not-allowed disabled:border-brand-border disabled:text-brand-muted disabled:hover:bg-brand-card"
                 >
                   <ShoppingBag size={14} />
-                  {product.fulfillmentMode === "READY" && (stock?.[selectedVariant.id] ?? 0) <= 0
+                  {isSelectedOutOfStock
                     ? "Habis hari ini — pesan lewat tanggal lain"
                     : "Tambah ke Keranjang"}
                 </button>
@@ -293,12 +323,12 @@ export default function ProductDetailClient({
                     ? `Ready stock${stock?.[selectedVariant.id] !== undefined ? ` — sisa ${stock[selectedVariant.id]} hari ini` : ""}`
                     : "Pre-order — pilih tanggal ambil saat checkout"}
                   {addedVariant === selectedVariant.id && (
-                    <Link
-                      href="/order"
-                      className="ml-2 font-semibold text-brand-dark underline underline-offset-4 decoration-brand-border hover:decoration-brand-dark"
+                    <span
+                      className="ml-2 font-semibold text-brand-dark"
+                      aria-live="polite"
                     >
-                      ✓ Ditambahkan — buka keranjang
-                    </Link>
+                      ✓ Ditambahkan ke keranjang
+                    </span>
                   )}
                 </p>
               </div>
@@ -326,6 +356,38 @@ export default function ProductDetailClient({
           </div>
         </div>
       </section>
+
+      {product.orderable && product.hasVariants && selectedVariant && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-border bg-brand-bg/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-8px_24px_rgba(28,27,25,0.08)] backdrop-blur-sm lg:hidden">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate font-sans text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-text">
+                {selectedVariant.name}
+              </p>
+              <p className="truncate font-playfair text-lg font-bold text-brand-dark">
+                {activePrice ?? "Harga menyusul"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={isSelectedOutOfStock}
+              className="flex shrink-0 items-center justify-center gap-2 border border-brand-dark bg-brand-dark px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
+            >
+              <ShoppingBag size={14} />
+              {isSelectedOutOfStock ? "Stok Habis" : "Tambah ke Keranjang"}
+            </button>
+          </div>
+          {addedVariant === selectedVariant.id && (
+            <p
+              className="mx-auto mt-2 block max-w-7xl text-center font-sans text-[10px] font-semibold text-brand-dark"
+              aria-live="polite"
+            >
+              ✓ Ditambahkan ke keranjang
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── Related Products ── */}
       <RelatedProducts currentSlug={product.slug} products={relatedProducts} />
