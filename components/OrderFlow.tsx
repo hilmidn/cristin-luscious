@@ -350,7 +350,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
           {/* ── Isi keranjang ── */}
           <div>
             <div className="mb-8 border border-brand-border bg-brand-card p-5 md:p-6">
-              <h2 className={labelClass}>Cara Pemenuhan</h2>
+              <h2 className={labelClass}>Cara Pemesanan</h2>
 
               {fulfillmentChoice === "STOCK" &&
                 !canUseStockToday &&
