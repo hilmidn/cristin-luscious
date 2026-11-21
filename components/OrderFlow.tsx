@@ -158,12 +158,6 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const isPickupToday = effectiveFulfillmentChoice === "STOCK";
   const scheduledAt = isPickupToday ? today : preorderDate;
 
-  useEffect(() => {
-    if (rows.length > 0 && !canUseStockToday) {
-      setFulfillmentChoice("PRE_ORDER");
-    }
-  }, [rows.length, canUseStockToday]);
-
   const total = rows.reduce(
     (acc, row) => acc + (row.variant.priceAmount ?? 0) * row.quantity,
     0,
