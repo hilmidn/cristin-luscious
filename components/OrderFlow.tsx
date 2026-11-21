@@ -356,15 +356,6 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
           <div>
             <div className="mb-8 border border-brand-border bg-brand-card p-5 md:p-6">
               <h2 className={labelClass}>Cara Pemenuhan</h2>
-
-              {fulfillmentChoice === "STOCK" &&
-                !canUseStockToday &&
-                rows.length > 0 && (
-                  <div className="border border-red-500 bg-red-50/60 p-4 font-sans text-[11px] leading-relaxed text-red-700">
-                    Stok hari ini tidak terpenuhi — Pesanan otomatis dialihkan
-                    ke pre-order.
-                  </div>
-                )}
               <div className="space-y-3">
                 <label
                   className={`flex cursor-pointer items-start gap-3 border p-4 ${
@@ -604,6 +595,15 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                 </h2>
               </div>
 
+              {fulfillmentChoice === "STOCK" &&
+                !canUseStockToday &&
+                rows.length > 0 && (
+                  <div className="border-b border-red-500 bg-red-50/60 px-5 py-3 font-sans text-[11px] leading-relaxed text-red-700">
+                    Stok hari ini tidak terpenuhi — Pesanan otomatis dialihkan
+                    ke pre-order.
+                  </div>
+                )}
+
               <div className="px-5 py-5">
                 <div className="space-y-4">
                   <div>
@@ -707,6 +707,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             <div className="min-w-0">
               <p className="font-sans text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-text">
                 {cartTotalQty(cart)} item
+                {effectiveFulfillmentChoice === "PRE_ORDER"
+                  ? " · Pre-order"
+                  : ""}
               </p>
               <p className="truncate font-playfair text-lg font-bold text-brand-dark">
                 {hasUnpriced ? "Dikonfirmasi admin" : formatRupiah(total)}
