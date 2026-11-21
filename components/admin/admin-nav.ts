@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BarChart3,
   Boxes,
   CalendarDays,
   ChefHat,
@@ -10,6 +11,7 @@ import {
   ReceiptText,
   Settings,
   ShoppingBag,
+  Users,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -77,6 +79,16 @@ export const adminNav: AdminNavGroup[] = [
         label: "Pesanan",
         href: "/admin/orders",
         icon: ShoppingBag,
+      },
+      {
+        label: "Pelanggan",
+        href: "/admin/customers",
+        icon: Users,
+      },
+      {
+        label: "Laporan Produk",
+        href: "/admin/reports/products",
+        icon: BarChart3,
       },
       {
         label: "Rekap Pesanan",
