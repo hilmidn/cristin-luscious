@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BarChart3,
   Boxes,
   CalendarDays,
   ChefHat,
@@ -32,6 +33,11 @@ export const adminNav: AdminNavGroup[] = [
         label: "Dashboard",
         href: "/admin",
         icon: LayoutDashboard,
+      },
+      {
+        label: "Pengunjung",
+        href: "/admin/analytics",
+        icon: BarChart3,
       },
     ],
   },
