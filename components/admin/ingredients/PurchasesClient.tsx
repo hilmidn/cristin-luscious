@@ -4,12 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatRupiah } from "@/lib/order-types";
 import type { PurchaseNoteRow } from "@/lib/inventory-types";
-import {
-  ChevronDown,
-  ChevronRight,
-  ReceiptText,
-  ShoppingBag,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, ShoppingBag } from "lucide-react";
 
 function formatDate(date: Date) {
   return new Date(date).toLocaleDateString("id-ID", {

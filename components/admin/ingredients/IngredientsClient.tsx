@@ -303,11 +303,11 @@ export function IngredientsClient({ ingredients }: { ingredients: IngredientRow[
       {/* Tabel bahan */}
       {ingredients.length === 0 ? (
         <p className="border border-dashed border-brand-border bg-brand-card px-6 py-14 text-center font-sans text-[10px] uppercase tracking-[0.22em] text-brand-muted">
-          Belum ada bahan baku — mulai dengan "Tambah Bahan"
+          Belum ada bahan baku — mulai dengan &quot;Tambah Bahan&quot;
         </p>
       ) : filtered.length === 0 ? (
         <p className="border border-dashed border-brand-border bg-brand-card px-6 py-14 text-center font-sans text-[10px] uppercase tracking-[0.22em] text-brand-muted">
-          Tidak ada bahan yang cocok dengan "{search}"
+          Tidak ada bahan yang cocok dengan &quot;{search}&quot;
         </p>
       ) : (
         <div className="overflow-x-auto border border-brand-border bg-brand-bg">
