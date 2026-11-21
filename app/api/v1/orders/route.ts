@@ -1,6 +1,7 @@
 import { ApiError, apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { saveOrderCore } from "@/lib/order-save";
 import type { OrderInput } from "@/lib/order-types";
+import { revalidateOrderVariantStockCache } from "@/lib/stock-revalidate";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,12 @@ export async function POST(request: Request) {
     }
 
     const result = await saveOrderCore(input);
+
+    if (result.ok) {
+      // Item stock-backed mengurangi stok jadi — chip stok halaman detail
+      // publik ikut di-purge.
+      await revalidateOrderVariantStockCache(result.id);
+    }
 
     return Response.json(result, { status: result.ok ? 200 : 422 });
   } catch (error) {

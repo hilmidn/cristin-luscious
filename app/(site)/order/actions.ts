@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { sendNewOrderNotification } from "@/lib/fcm";
 import { getPrisma } from "@/lib/prisma";
 import { saveOrderCore } from "@/lib/order-save";
+import { revalidateOrderVariantStockCache } from "@/lib/stock-revalidate";
 import type { OrderInput } from "@/lib/order-types";
 
 export type WebOrderItem = {
@@ -83,6 +84,11 @@ export async function submitWebOrder(input: {
   if (!result.ok) {
     return { ok: false, error: result.error };
   }
+
+  // Item stock-backed baru saja mengurangi stok jadi — chip stok di halaman
+  // detail publik (ISR) harus di-purge supaya pembeli berikutnya melihat sisa
+  // yang benar tanpa harus refresh 2x.
+  await revalidateOrderVariantStockCache(result.id);
 
   // Notifikasi push ke app admin — jalan SETELAH response checkout terkirim.
   // after() menjamin promise selesai sebelum function serverless dibekukan

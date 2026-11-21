@@ -7,6 +7,7 @@ import { deductIngredientsForOrder } from "@/lib/inventory";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-types";
 import { getPrisma, TX_OPTIONS } from "@/lib/prisma";
 import { restoreOrderVariantStock } from "@/lib/stock";
+import { revalidateOrderVariantStockCache } from "@/lib/stock-revalidate";
 
 /**
  * Inti perubahan status pesanan — dipakai admin server action
@@ -72,6 +73,12 @@ export async function changeOrderStatus(
   revalidatePath("/admin/orders");
   revalidatePath("/admin/production");
   revalidatePath(`/admin/orders/${orderId}`);
+
+  // Pembatalan adalah satu-satunya perubahan status yang mengembalikan stok
+  // jadi — chip stok di halaman detail publik (ISR) ikut di-purge.
+  if (status === "DIBATALKAN") {
+    await revalidateOrderVariantStockCache(orderId);
+  }
 
   return { id: orderId, status };
 }

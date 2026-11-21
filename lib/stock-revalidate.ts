@@ -32,3 +32,34 @@ export async function revalidateVariantStockCache(
     revalidatePath(`/products/${variant.product.slug}`);
   }
 }
+
+/**
+ * VariantId yang tertaut ke item nota (untuk purge halaman detail publik).
+ * WAJIB dipanggil SEBELUM nota dihapus — orderItem ikut cascade saat
+ * order.delete, jadi setelahnya tidak ada yang bisa di-query.
+ */
+export async function getOrderVariantIds(orderId: string): Promise<string[]> {
+  if (!orderId) {
+    return [];
+  }
+
+  const items = await getPrisma().orderItem.findMany({
+    where: { orderId },
+    select: { variantId: true },
+  });
+
+  return items
+    .map((item) => item.variantId)
+    .filter((value): value is string => Boolean(value));
+}
+
+/**
+ * Purge halaman detail publik untuk semua varian dalam satu nota
+ * (order masuk mengurangi stok, pembatalan mengembalikannya). Nota harus
+ * masih ada di DB saat fungsi ini dipanggil.
+ */
+export async function revalidateOrderVariantStockCache(
+  orderId: string,
+): Promise<void> {
+  await revalidateVariantStockCache(await getOrderVariantIds(orderId));
+}

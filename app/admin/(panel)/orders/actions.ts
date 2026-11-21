@@ -7,6 +7,11 @@ import { changeOrderStatus } from "@/lib/order-status";
 import { saveOrderCore, type SaveOrderResult } from "@/lib/order-save";
 import { restoreOrderVariantStock } from "@/lib/stock";
 import {
+  getOrderVariantIds,
+  revalidateOrderVariantStockCache,
+  revalidateVariantStockCache,
+} from "@/lib/stock-revalidate";
+import {
   type OrderInput,
   type OrderStatus,
 } from "@/lib/order-types";
@@ -51,6 +56,9 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
 
   if (result.ok) {
     revalidateOrders(result.id);
+    // Stok jadi bisa berkurang di sini (item stock-backed) — chip stok di
+    // halaman detail publik ikut di-purge.
+    await revalidateOrderVariantStockCache(result.id);
   }
 
   return result;
@@ -69,6 +77,9 @@ export async function deleteOrder(id: string): Promise<SimpleActionResult> {
       return { ok: false, error: "Pesanan tidak ditemukan." };
     }
 
+    // VariantId dikumpulkan SEBELUM delete — orderItem ter-cascade bersama nota.
+    const variantIds = await getOrderVariantIds(order.id);
+
     await getPrisma().$transaction(async (tx) => {
       // Stok jadi yang sempat keluar dikembalikan dulu — kecuali sudah
       // SELESAI (barang fisiknya sudah diambil) atau memang sudah dibatal.
@@ -80,6 +91,7 @@ export async function deleteOrder(id: string): Promise<SimpleActionResult> {
     }, TX_OPTIONS);
 
     revalidateOrders();
+    await revalidateVariantStockCache(variantIds);
 
     return { ok: true };
   } catch (error) {
