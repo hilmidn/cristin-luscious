@@ -52,9 +52,21 @@ enum OrderStatus {
 
 /// Cara pemenuhan pesanan produk: PRE_ORDER dibuat setelah pesanan masuk,
 /// READY dijual dari stok jadi yang tersedia hari ini.
+///
+/// DEPRECATED (plan 2026-11-21-dynamic-stock-preorder): mode statis produk
+/// akan dihapus setelah kode baru sepenuhnya membaca ketersediaan dinamis
+/// dari stok varian (expand-contract; jangan dipakai di kode baru).
 enum FulfillmentMode {
   PRE_ORDER
   READY
+}
+
+/// Cara pemenuhan aktual satu item pesanan (snapshot saat nota dibuat):
+/// STOCK dijual dari stok jadi, PRE_ORDER dibuat lewat produksi.
+/// Nullable untuk data lama sebelum backfill selesai ditinjau.
+enum FulfillmentType {
+  STOCK
+  PRE_ORDER
 }
 
 model Product {
@@ -191,6 +203,12 @@ model OrderItem {
   lineTotal   Int      @default(0)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
+
+  // Snapshot cara pemenuhan item ini (Batch 1 plan dynamic-stock-preorder):
+  // STOCK dipenuhi dari stok jadi, PRE_ORDER dibuat lewat produksi.
+  // Nullable = data lama yang belum punya bukti task/movement (ditinjau via
+  // scripts/audit-fulfillment.ts sebelum dibuat wajib).
+  fulfillmentType FulfillmentType?
 
   @@index([orderId, sortOrder])
   @@index([variantId])
