@@ -1,7 +1,7 @@
-"Change note: Product sales analytics component with summary cards, bar chart, variant table, and CSV export"
+"Change note: Product sales analytics component with summary cards, bar chart, variant table, and CSV export";
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { formatRupiah } from "@/lib/order-types";
 import type { ProductSalesSummary } from "@/lib/report-types";
 import {
@@ -54,7 +54,9 @@ export function ProductSalesAnalytics({
   }
 
   const avgQtyPerOrder =
-    completedOrdersCount > 0 ? (totalQuantity / completedOrdersCount).toFixed(1) : "0";
+    completedOrdersCount > 0
+      ? (totalQuantity / completedOrdersCount).toFixed(1)
+      : "0";
 
   // Filter products by search
   const filteredProducts = products.filter((p) => {
@@ -68,7 +70,14 @@ export function ProductSalesAnalytics({
   // Export CSV
   const exportCSV = () => {
     const rows = [
-      ["Produk", "Varian", "Harga Satuan", "Qty Terjual", "Total Omzet (IDR)", "Kontribusi Omzet (%)"],
+      [
+        "Produk",
+        "Varian",
+        "Harga Satuan",
+        "Qty Terjual",
+        "Total Omzet (IDR)",
+        "Kontribusi Omzet (%)",
+      ],
     ];
 
     for (const p of products) {
@@ -89,7 +98,10 @@ export function ProductSalesAnalytics({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `laporan-penjualan-produk-${month || "semua"}.csv`);
+    link.setAttribute(
+      "download",
+      `laporan-penjualan-produk-${month || "semua"}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -126,9 +138,12 @@ export function ProductSalesAnalytics({
             </div>
           </div>
           <p className="mt-2 text-2xl font-extrabold text-stone-900">
-            {totalQuantity} <span className="text-sm font-normal text-stone-500">item</span>
+            {totalQuantity}{" "}
+            <span className="text-sm font-normal text-stone-500">item</span>
           </p>
-          <p className="mt-1 text-xs text-stone-500">Rata-rata {avgQtyPerOrder} item / order</p>
+          <p className="mt-1 text-xs text-stone-500">
+            Rata-rata {avgQtyPerOrder} item / order
+          </p>
         </div>
 
         <div className="rounded-2xl bg-white p-5 shadow-xs border border-stone-200">
@@ -140,7 +155,10 @@ export function ProductSalesAnalytics({
               <ShoppingBag className="h-5 w-5" />
             </div>
           </div>
-          <p className="mt-2 text-lg font-extrabold text-stone-900 truncate" title={bestSellerName}>
+          <p
+            className="mt-2 text-lg font-extrabold text-stone-900 truncate"
+            title={bestSellerName}
+          >
             {bestSellerName}
           </p>
           <p className="mt-1 text-xs text-emerald-700 font-medium">
@@ -157,7 +175,10 @@ export function ProductSalesAnalytics({
               <BarChart3 className="h-5 w-5" />
             </div>
           </div>
-          <p className="mt-2 text-lg font-extrabold text-stone-900 truncate" title={topRevenueName}>
+          <p
+            className="mt-2 text-lg font-extrabold text-stone-900 truncate"
+            title={topRevenueName}
+          >
             {topRevenueName}
           </p>
           <p className="mt-1 text-xs text-amber-700 font-medium">
@@ -226,11 +247,14 @@ export function ProductSalesAnalytics({
           Grafik Kontribusi Omzet Produk
         </h3>
         <p className="text-xs text-stone-500 mb-6">
-          Visualisasi persentase omzet dari setiap produk terhadap total penjualan selesai.
+          Visualisasi persentase omzet dari setiap produk terhadap total
+          penjualan selesai.
         </p>
 
         {filteredProducts.length === 0 ? (
-          <p className="text-center py-8 text-stone-500 text-sm">Tidak ada data produk.</p>
+          <p className="text-center py-8 text-stone-500 text-sm">
+            Tidak ada data produk.
+          </p>
         ) : (
           <div className="space-y-4">
             {filteredProducts.slice(0, 8).map((p) => {
@@ -243,10 +267,13 @@ export function ProductSalesAnalytics({
               return (
                 <div key={p.productId} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-stone-800">{p.productName}</span>
+                    <span className="font-semibold text-stone-800">
+                      {p.productName}
+                    </span>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-stone-500">
-                        {p.totalQuantity} item ({p.revenueSharePercent.toFixed(1)}%)
+                        {p.totalQuantity} item (
+                        {p.revenueSharePercent.toFixed(1)}%)
                       </span>
                       <span className="font-bold text-amber-700">
                         {formatRupiah(p.totalRevenue)}
@@ -269,7 +296,9 @@ export function ProductSalesAnalytics({
       {/* Detailed Product & Variant Breakdown Table */}
       <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs">
         <div className="border-b border-stone-200 bg-stone-50 px-6 py-4">
-          <h3 className="font-bold text-stone-900">Breakdown Detail Per Produk & Varian</h3>
+          <h3 className="font-bold text-stone-900">
+            Breakdown Detail Per Produk & Varian
+          </h3>
           <p className="text-xs text-stone-500">
             Klik baris produk untuk melihat rincian varian rasa/ukuran.
           </p>
@@ -289,7 +318,10 @@ export function ProductSalesAnalytics({
             <tbody className="divide-y divide-stone-100">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-stone-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-stone-500"
+                  >
                     Tidak ada data penjualan produk.
                   </td>
                 </tr>
@@ -298,7 +330,7 @@ export function ProductSalesAnalytics({
                   const isExpanded = expandedProduct === p.productId;
 
                   return (
-                    <>
+                    <Fragment key={p.productId}>
                       {/* Product Header Row */}
                       <tr
                         key={p.productId}
@@ -324,7 +356,9 @@ export function ProductSalesAnalytics({
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-center text-stone-400">—</td>
+                        <td className="px-6 py-4 text-center text-stone-400">
+                          —
+                        </td>
                         <td className="px-6 py-4 text-center font-bold text-stone-900">
                           {p.totalQuantity} item
                         </td>
@@ -348,7 +382,9 @@ export function ProductSalesAnalytics({
                                 ↳ {v.variantName}
                               </span>
                               {v.priceUnit && (
-                                <span className="ml-2 text-stone-400">({v.priceUnit})</span>
+                                <span className="ml-2 text-stone-400">
+                                  ({v.priceUnit})
+                                </span>
                               )}
                             </td>
                             <td className="px-6 py-3 text-center text-stone-600">
@@ -365,7 +401,7 @@ export function ProductSalesAnalytics({
                             </td>
                           </tr>
                         ))}
-                    </>
+                    </Fragment>
                   );
                 })
               )}
