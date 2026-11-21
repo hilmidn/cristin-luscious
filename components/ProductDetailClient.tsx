@@ -368,6 +368,12 @@ export default function ProductDetailClient({
               Tambah ke Keranjang
             </button>
           </div>
+          {selectedStock === 0 && (
+            <p className="mx-auto mt-2 block max-w-7xl text-center font-sans text-[10px] tracking-wide text-brand-text">
+              Stok habis — tetap bisa dipesan sebagai pre-order, mulai H+3 saat
+              checkout.
+            </p>
+          )}
           {addedVariant === selectedVariant.id && (
             <p
               className="mx-auto mt-2 block max-w-7xl text-center font-sans text-[10px] font-semibold text-brand-dark"

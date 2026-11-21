@@ -644,8 +644,29 @@ export async function saveOrderCore(
             );
 
             if (origin === "WEB" && !stockAvailable) {
+              const requiredByVariant = new Map<string, number>();
+
+              for (const item of resolvedItems) {
+                if (!item.variantId) continue;
+                requiredByVariant.set(
+                  item.variantId,
+                  (requiredByVariant.get(item.variantId) ?? 0) + item.quantity,
+                );
+              }
+
+              const shortages: string[] = [];
+
+              for (const [variantId, required] of requiredByVariant) {
+                const shortage = required - (stockByVariant[variantId] ?? 0);
+
+                if (shortage > 0) {
+                  const name = variantMap.get(variantId)?.name ?? variantId;
+                  shortages.push(`${name} kurang ${shortage}`);
+                }
+              }
+
               throw new Error(
-                `Stok hari ini berubah atau tidak cukup. Pilih pre-order mulai ${minimumPreOrderDate()}.`,
+                `Stok hari ini tidak cukup${shortages.length ? `: ${shortages.join(", ")}` : ""}. Pilih pre-order mulai ${minimumPreOrderDate()}.`,
               );
             }
 
