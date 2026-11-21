@@ -151,18 +151,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
     })),
     stock,
   );
-  const shortages = useMemo(
-    () =>
-      rows
-        .map((row) => {
-          const sisa = stock[row.variant.id] ?? 0;
-          return row.quantity > sisa
-            ? `${row.variant.name} kurang ${row.quantity - sisa}`
-            : null;
-        })
-        .filter((value): value is string => value !== null),
-    [rows, stock],
-  );
+
   const effectiveFulfillmentChoice =
     rows.length === 0 || !canUseStockToday
       ? "PRE_ORDER"
@@ -219,7 +208,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
     if (effectiveFulfillmentChoice === "STOCK" && !canUseStockToday) {
       setFulfillmentChoice("PRE_ORDER");
       setError(
-        `Stok hari ini tidak cukup: ${shortages.join(", ")}. Pilih pre-order.`,
+        "Stok hari ini tidak terpenuhi. Pesanan dialihkan ke pre-order.",
       );
       return;
     }
@@ -371,14 +360,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
               {fulfillmentChoice === "STOCK" &&
                 !canUseStockToday &&
                 rows.length > 0 && (
-                  <div className="border border-red-500 bg-red-50/60 p-4">
-                    <p className="font-sans text-[9px] font-bold uppercase tracking-[0.2em] text-red-700">
-                      Stok hari ini berkurang
-                    </p>
-                    <p className="mt-1 font-sans text-[11px] leading-relaxed text-red-700">
-                      Pesanan otomatis dialihkan ke pre-order. Kekurangan:{" "}
-                      {shortages.join(", ")}.
-                    </p>
+                  <div className="border border-red-500 bg-red-50/60 p-4 font-sans text-[11px] leading-relaxed text-red-700">
+                    Stok hari ini tidak terpenuhi — Pesanan otomatis dialihkan
+                    ke pre-order.
                   </div>
                 )}
               <div className="space-y-3">
@@ -574,7 +558,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                             </div>
                           </div>
 
-                          {quantity > sisa && (
+                          {fulfillmentChoice === "STOCK" && quantity > sisa && (
                             <p className="mt-2 border border-red-500 bg-red-50/60 px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-red-700">
                               Melebihi stok hari ini — kurang {quantity - sisa}
                             </p>
