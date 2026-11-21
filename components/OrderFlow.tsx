@@ -19,10 +19,7 @@ import {
   setCartQty,
   subscribeCart,
 } from "@/lib/cart-store";
-import {
-  canFulfillFromStock,
-  minimumPreOrderDate,
-} from "@/lib/order-types";
+import { canFulfillFromStock, minimumPreOrderDate } from "@/lib/order-types";
 import {
   productImageSrc,
   type CatalogProduct,
@@ -153,9 +150,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   );
 
   const effectiveFulfillmentChoice =
-    rows.length === 0 || !canUseStockToday
-      ? "PRE_ORDER"
-      : fulfillmentChoice;
+    rows.length === 0 || !canUseStockToday ? "PRE_ORDER" : fulfillmentChoice;
   const isPickupToday = effectiveFulfillmentChoice === "STOCK";
   const scheduledAt = isPickupToday ? today : preorderDate;
 
@@ -414,8 +409,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                       Pre-order
                     </span>
                     <span className="mt-1 block font-sans text-[10px] leading-relaxed text-brand-text">
-                      Semua item dibuat sesuai tanggal pilihan; stok jadi tidak
-                      direservasi.
+                      Semua item dibuat sesuai tanggal pilihan.
                     </span>
                   </span>
                 </label>
@@ -561,10 +555,11 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                           {fulfillmentChoice === "STOCK" &&
                             sisa > 0 &&
                             quantity > sisa && (
-                            <p className="mt-2 border border-red-500 bg-red-50/60 px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-red-700">
-                              Melebihi stok hari ini — kurang {quantity - sisa}
-                            </p>
-                          )}
+                              <p className="mt-2 border border-red-500 bg-red-50/60 px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-red-700">
+                                Melebihi stok hari ini — kurang{" "}
+                                {quantity - sisa}
+                              </p>
+                            )}
                         </div>
                       </div>
                     </div>
@@ -579,7 +574,6 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                     halaman katalog.
                   </div>
                 )}
-
               </div>
             )}
           </div>
