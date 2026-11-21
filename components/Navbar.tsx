@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Menu, X, Phone } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,13 +35,19 @@ export default function Navbar() {
     };
   }, [isMobileMenuOpen]);
 
+  const isHome = usePathname() === "/";
+  // Di luar homepage, menu section jadi link ke /#section supaya tetap
+  // kembali ke home dan scroll ke section-nya (bug: #about tidak berfungsi
+  // di /products/... karena elemennya tidak ada di halaman itu).
+  const sectionHref = (id: string) => (isHome ? `#${id}` : `/#${id}`);
+
   const navLinks = [
-    { name: "Home", href: "#home" },
-    { name: "Our Story", href: "#about" },
-    { name: "Signature", href: "#signature" },
-    { name: "Creations", href: "#products" },
-    { name: "Contact", href: "#contact" },
-  ];
+    { name: "Home", id: "home" },
+    { name: "Our Story", id: "about" },
+    { name: "Signature", id: "signature" },
+    { name: "Creations", id: "products" },
+    { name: "Contact", id: "contact" },
+  ].map(({ name, id }) => ({ name, href: sectionHref(id) }));
 
   return (
     <>
@@ -53,7 +60,7 @@ export default function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between">
           {/* Brand Logo - Huruf Latin script aesthetic */}
-          <a href="#home" className="flex flex-col group relative">
+          <Link href={isHome ? "#home" : "/"} className="flex flex-col group relative">
             <Image
               src="/logo.png"
               alt="Logo"
@@ -68,19 +75,19 @@ export default function Navbar() {
             <span className="font-script text-2xl md:text-3xl text-brand-text font-light -mt-2.5 ml-4 tracking-wider group-hover:text-brand-dark transition-colors duration-500">
               Luscious
             </span> */}
-          </a>
+          </Link>
 
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-10">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
                 href={link.href}
                 className="text-xs tracking-widest uppercase text-brand-text hover:text-brand-dark transition-all duration-300 relative group py-2"
               >
                 {link.name}
                 <span className="absolute bottom-0 left-0 w-0 h-px bg-brand-dark transition-all duration-300 group-hover:w-full" />
-              </a>
+              </Link>
             ))}
             <Link
               href="/#products"
@@ -137,14 +144,14 @@ export default function Navbar() {
             Menu Navigation
           </span>
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.name}
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
               className="text-3xl tracking-widest uppercase font-playfair text-brand-text hover:text-brand-dark transition-colors block py-1.5"
             >
               {link.name}
-            </a>
+            </Link>
           ))}
           <Link
             href="/#products"
