@@ -5,6 +5,7 @@ import FeaturedCheesecake from "@/components/FeaturedCheesecake";
 import ProductList from "@/components/ProductList";
 import Footer from "@/components/Footer";
 import { getPublishedProducts } from "@/lib/catalog";
+import { getPublishedVariantStockMap } from "@/lib/stock";
 import { Metadata } from "next";
 
 export const revalidate = 60;
@@ -63,7 +64,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const products = await getPublishedProducts();
+  const [products, stock] = await Promise.all([
+    getPublishedProducts(),
+    getPublishedVariantStockMap(),
+  ]);
   const canonicalUrl = getAbsoluteUrl("/");
   const structuredData = {
     "@context": "https://schema.org",
@@ -114,7 +118,7 @@ export default async function Home() {
           <FeaturedCheesecake />
 
           {/* Elegant collection list (Cookies, Donut, Cheesecake, Custom Cake, Brownies) */}
-          <ProductList products={products} />
+          <ProductList products={products} stock={stock} />
         </main>
 
         {/* Structured contact form & business coordinates */}

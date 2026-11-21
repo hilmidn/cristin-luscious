@@ -20,6 +20,10 @@ import {
   subscribeCart,
 } from "@/lib/cart-store";
 import {
+  canFulfillFromStock,
+  minimumPreOrderDate,
+} from "@/lib/order-types";
+import {
   productImageSrc,
   type CatalogProduct,
   type CatalogVariant,
@@ -68,7 +72,13 @@ type CartRow = {
 
 export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const [isPending, startTransition] = useTransition();
-  const [date, setDate] = useState(today);
+  const minimumPreorderDate = minimumPreOrderDate(
+    new Date(`${today}T00:00:00+07:00`),
+  );
+  const [fulfillmentChoice, setFulfillmentChoice] = useState<
+    "STOCK" | "PRE_ORDER"
+  >("STOCK");
+  const [preorderDate, setPreorderDate] = useState(minimumPreorderDate);
 
   // Keranjang = external store (localStorage) — React resinkron otomatis,
   // server snapshot kosong supaya hydration aman.
@@ -100,8 +110,6 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   );
   const effectiveName = customerName || savedContact?.name || "";
   const effectivePhone = phone || savedContact?.phone || "";
-
-  const isPickupToday = date === today;
 
   const variantIndex = useMemo(() => {
     const map = new Map<
@@ -136,22 +144,31 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
     [cart, variantIndex],
   );
 
-  const usesStock = (product: CatalogProduct) =>
-    product.fulfillmentMode === "READY" && isPickupToday;
+  const canUseStockToday = canFulfillFromStock(
+    rows.map((row) => ({
+      variantId: row.variant.id,
+      quantity: row.quantity,
+    })),
+    stock,
+  );
+  const effectiveFulfillmentChoice =
+    rows.length === 0 || !canUseStockToday
+      ? "PRE_ORDER"
+      : fulfillmentChoice;
+  const isPickupToday = effectiveFulfillmentChoice === "STOCK";
+  const scheduledAt = isPickupToday ? today : preorderDate;
 
-  const maxQty = (product: CatalogProduct, variantId: string) =>
-    usesStock(product) ? (stock[variantId] ?? 0) : MAX_WEB_QTY;
+  useEffect(() => {
+    if (rows.length > 0 && !canUseStockToday) {
+      setFulfillmentChoice("PRE_ORDER");
+    }
+  }, [rows.length, canUseStockToday]);
 
   const total = rows.reduce(
     (acc, row) => acc + (row.variant.priceAmount ?? 0) * row.quantity,
     0,
   );
   const hasUnpriced = rows.some((row) => row.variant.priceAmount === null);
-
-  const shortage = rows.some(
-    (row) =>
-      usesStock(row.product) && row.quantity > (stock[row.variant.id] ?? 0),
-  );
 
   useEffect(() => {
     const customerInfo = customerInfoRef.current;
@@ -193,9 +210,21 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
       return;
     }
 
-    if (shortage) {
+    if (effectiveFulfillmentChoice === "STOCK" && !canUseStockToday) {
+      setFulfillmentChoice("PRE_ORDER");
       setError(
-        "Ada item yang stoknya tidak cukup untuk hari ini — kurangi jumlahnya.",
+        "Stok hari ini tidak cukup untuk seluruh keranjang. Pilih pre-order.",
+      );
+      return;
+    }
+
+    if (
+      effectiveFulfillmentChoice === "PRE_ORDER" &&
+      preorderDate < minimumPreorderDate
+    ) {
+      setPreorderDate(minimumPreorderDate);
+      setError(
+        `Tanggal pre-order paling cepat ${formatTanggal(minimumPreorderDate)} (H+3 WIB).`,
       );
       return;
     }
@@ -205,7 +234,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
         customerName: effectiveName,
         phone: effectivePhone,
         note,
-        scheduledAt: date,
+        scheduledAt,
         items: rows.map((row) => ({
           variantId: row.variant.id,
           quantity: row.quantity,
@@ -213,6 +242,10 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
       });
 
       if (!result.ok) {
+        if (result.error.includes("Tanggal pre-order paling cepat")) {
+          setFulfillmentChoice("PRE_ORDER");
+          setPreorderDate(minimumPreOrderDate());
+        }
         setError(result.error);
         return;
       }
@@ -266,7 +299,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
               <p>
                 <span className="uppercase tracking-[0.18em]">Ambil pada</span>{" "}
                 <span className="float-right text-brand-dark">
-                  {formatTanggal(date)}
+                  {formatTanggal(scheduledAt)}
                 </span>
               </p>
               <p>
@@ -326,24 +359,88 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
           {/* ── Isi keranjang ── */}
           <div>
-            {/* Tanggal ambil */}
             <div className="mb-8 border border-brand-border bg-brand-card p-5 md:p-6">
-              <label htmlFor="tanggal" className={labelClass}>
-                Tanggal Ambil
-              </label>
-              <input
-                id="tanggal"
-                type="date"
-                min={today}
-                value={date}
-                onChange={(event) => setDate(event.target.value || today)}
-                className="w-full border border-brand-border bg-brand-bg px-4 py-3 font-sans text-xs text-brand-dark outline-none focus:border-brand-dark sm:max-w-xs"
-              />
-              <p className="mt-3 font-sans text-[11px] leading-relaxed text-brand-text">
-                {isPickupToday
-                  ? "Produk ready stock diambil dari stok hari ini. Produk pre-order perlu waktu pembuatan — pilih tanggal lain."
-                  : `Semua item dibuat untuk diambil ${formatTanggal(date)}.`}
-              </p>
+              <h2 className={labelClass}>Cara Pemenuhan</h2>
+              <div className="space-y-3">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 border p-4 ${
+                    effectiveFulfillmentChoice === "STOCK"
+                      ? "border-brand-dark bg-brand-bg"
+                      : "border-brand-border"
+                  } ${!canUseStockToday ? "cursor-not-allowed opacity-60" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    value="STOCK"
+                    checked={effectiveFulfillmentChoice === "STOCK"}
+                    disabled={!canUseStockToday}
+                    onChange={() => setFulfillmentChoice("STOCK")}
+                    className="mt-0.5 accent-brand-dark"
+                  />
+                  <span>
+                    <span className="block font-sans text-xs font-semibold text-brand-dark">
+                      Ambil hari ini
+                    </span>
+                    <span className="mt-1 block font-sans text-[10px] leading-relaxed text-brand-text">
+                      {canUseStockToday
+                        ? "Stok cukup untuk seluruh keranjang."
+                        : "Tidak tersedia karena stok seluruh keranjang belum mencukupi."}
+                    </span>
+                  </span>
+                </label>
+
+                <label
+                  className={`flex cursor-pointer items-start gap-3 border p-4 ${
+                    effectiveFulfillmentChoice === "PRE_ORDER"
+                      ? "border-brand-dark bg-brand-bg"
+                      : "border-brand-border"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    value="PRE_ORDER"
+                    checked={effectiveFulfillmentChoice === "PRE_ORDER"}
+                    onChange={() => setFulfillmentChoice("PRE_ORDER")}
+                    className="mt-0.5 accent-brand-dark"
+                  />
+                  <span>
+                    <span className="block font-sans text-xs font-semibold text-brand-dark">
+                      Pre-order
+                    </span>
+                    <span className="mt-1 block font-sans text-[10px] leading-relaxed text-brand-text">
+                      Semua item dibuat sesuai tanggal pilihan; stok jadi tidak
+                      direservasi.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              {isPickupToday ? (
+                <p className="mt-3 font-sans text-[11px] text-brand-text">
+                  Tanggal ambil: <strong>{formatTanggal(today)}</strong>
+                </p>
+              ) : (
+                <div className="mt-4">
+                  <label htmlFor="tanggal" className={labelClass}>
+                    Tanggal Ambil Pre-order
+                  </label>
+                  <input
+                    id="tanggal"
+                    type="date"
+                    min={minimumPreorderDate}
+                    value={preorderDate}
+                    onChange={(event) =>
+                      setPreorderDate(event.target.value || minimumPreorderDate)
+                    }
+                    className="w-full border border-brand-border bg-brand-bg px-4 py-3 font-sans text-xs text-brand-dark outline-none focus:border-brand-dark sm:max-w-xs"
+                  />
+                  <p className="mt-3 font-sans text-[11px] leading-relaxed text-brand-text">
+                    Paling cepat {formatTanggal(minimumPreorderDate)} (H+3 WIB).
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mb-6 flex items-center justify-between gap-3">
@@ -379,17 +476,12 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             ) : (
               <div className="space-y-4">
                 {rows.map(({ product, variant, quantity }) => {
-                  const ready = product.fulfillmentMode === "READY";
-                  const limit = maxQty(product, variant.id);
-                  const overLimit = usesStock(product) && quantity > limit;
                   const sisa = stock[variant.id] ?? 0;
 
                   return (
                     <div
                       key={variant.id}
-                      className={`border bg-brand-card p-4 md:p-5 ${
-                        overLimit ? "border-red-500" : "border-brand-border"
-                      }`}
+                      className="border border-brand-border bg-brand-card p-4 md:p-5"
                     >
                       <div className="flex items-start gap-4">
                         <span
@@ -438,7 +530,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                                 onClick={() =>
                                   setCartQty(variant.id, quantity + 1)
                                 }
-                                disabled={quantity >= limit}
+                                disabled={quantity >= MAX_WEB_QTY}
                                 aria-label="Tambah"
                                 className="px-3 py-2 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
                               >
@@ -454,18 +546,10 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                                       variant.priceAmount * quantity,
                                     )}
                               </p>
-                              <p
-                                className={`font-sans text-[9px] font-semibold uppercase tracking-[0.16em] ${
-                                  overLimit ? "text-red-600" : "text-brand-text"
-                                }`}
-                              >
-                                {ready
-                                  ? isPickupToday
-                                    ? overLimit
-                                      ? `Melebihi stok — sisa ${sisa}`
-                                      : `Sisa ${sisa} hari ini`
-                                    : "Dibuat untuk tanggal terpilih"
-                                  : "Pre-order"}
+                              <p className="font-sans text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-text">
+                                {isPickupToday
+                                  ? `Stok hari ini · sisa ${sisa}`
+                                  : `Pre-order untuk ${formatTanggal(scheduledAt)}`}
                               </p>
                             </div>
                           </div>
@@ -484,13 +568,6 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                   </div>
                 )}
 
-                {isPickupToday && rows.length > 0 && (
-                  <p className="font-sans text-[11px] leading-relaxed text-brand-text">
-                    Stok hari ini terbatas — kalau produk ready di keranjang
-                    sudah habis, ganti tanggal ambil untuk menjadikannya
-                    pre-order.
-                  </p>
-                )}
               </div>
             )}
           </div>
@@ -583,7 +660,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
 
                   <button
                     onClick={handleSubmit}
-                    disabled={isPending || rows.length === 0 || shortage}
+                    disabled={isPending || rows.length === 0}
                     className="flex w-full items-center justify-center gap-2.5 border border-brand-dark bg-brand-dark px-6 py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
                   >
                     {isPending ? (
@@ -595,7 +672,7 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                   </button>
 
                   <p className="text-center font-sans text-[10px] leading-relaxed text-brand-text">
-                    · Pickup ({formatTanggal(date)}) · Bayar saat pickup
+                    · Pickup ({formatTanggal(scheduledAt)}) · Bayar saat pickup
                   </p>
                 </div>
               </div>
@@ -606,7 +683,6 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             <AddProductSheet
               products={products}
               stock={stock}
-              isPickupToday={isPickupToday}
               onClose={() => setShowAdd(false)}
             />
           )}
@@ -644,12 +720,10 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
 function AddProductSheet({
   products,
   stock,
-  isPickupToday,
   onClose,
 }: {
   products: CatalogProduct[];
   stock: Record<string, number>;
-  isPickupToday: boolean;
   onClose: () => void;
 }) {
   const snapshot = useSyncExternalStore(
@@ -711,10 +785,6 @@ function AddProductSheet({
                 {product.variants.map((variant) => {
                   const qty = cart[variant.id] ?? 0;
                   const sisa = stock[variant.id] ?? 0;
-                  const fromStock =
-                    product.fulfillmentMode === "READY" && isPickupToday;
-                  const limit = fromStock ? sisa : MAX_WEB_QTY;
-                  const habis = qty === 0 && fromStock && sisa <= 0;
 
                   return (
                     <div
@@ -725,21 +795,17 @@ function AddProductSheet({
                         <p className="font-sans text-xs font-semibold text-brand-dark">
                           {variant.name}
                         </p>
-                        <p
-                          className={`font-mono text-[10px] ${
-                            habis ? "text-red-600" : "text-brand-text"
-                          }`}
-                        >
+                        <p className="font-mono text-[10px] text-brand-text">
                           {variant.price ?? "Harga menyusul"}
-                          {fromStock &&
-                            (habis ? " · habis hari ini" : ` · sisa ${sisa}`)}
+                          {sisa > 0
+                            ? ` · stok hari ini ${sisa}`
+                            : " · pre-order tersedia"}
                         </p>
                       </div>
 
                       {qty === 0 ? (
                         <button
                           onClick={() => setCartQty(variant.id, 1)}
-                          disabled={habis}
                           className="shrink-0 border border-brand-dark bg-brand-dark px-3.5 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
                         >
                           Tambah
@@ -758,7 +824,7 @@ function AddProductSheet({
                           </span>
                           <button
                             onClick={() => setCartQty(variant.id, qty + 1)}
-                            disabled={qty >= limit}
+                            disabled={qty >= MAX_WEB_QTY}
                             aria-label="Tambah"
                             className="px-2.5 py-2 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
                           >

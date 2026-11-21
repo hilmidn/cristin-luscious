@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       throw new ApiError(422, "Struktur data pesanan tidak valid.");
     }
 
-    const result = await saveOrderCore(input);
+    const result = await saveOrderCore({ ...input, id: undefined }, "ADMIN");
 
     if (result.ok) {
       // Item stock-backed mengurangi stok jadi — chip stok halaman detail

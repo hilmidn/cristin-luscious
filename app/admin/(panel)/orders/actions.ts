@@ -52,7 +52,7 @@ export async function saveOrder(input: OrderInput): Promise<SaveOrderResult> {
     return { ok: false, error: "Sesi admin tidak valid. Silakan login ulang." };
   }
 
-  const result = await saveOrderCore(input);
+  const result = await saveOrderCore(input, "ADMIN");
 
   if (result.ok) {
     revalidateOrders(result.id);

@@ -21,6 +21,7 @@ type SuggestionInputProps<T extends SuggestionOption> = {
   onPick?: (option: T) => void;
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
 };
 
 type SuggestionInputComponent = <T extends SuggestionOption>(
@@ -42,6 +43,7 @@ const SuggestionInput: SuggestionInputComponent = ({
   onPick,
   placeholder,
   required,
+  disabled,
 }) => {
   const listId = `${id}-suggestions`;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,6 +129,7 @@ const SuggestionInput: SuggestionInputComponent = ({
         role="combobox"
         autoComplete="off"
         required={required}
+        disabled={disabled}
         aria-autocomplete="list"
         aria-expanded={showList}
         aria-controls={showList ? listId : undefined}
@@ -142,27 +145,29 @@ const SuggestionInput: SuggestionInputComponent = ({
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={fieldClass}
+        className={`${fieldClass} disabled:cursor-not-allowed disabled:opacity-60`}
       />
 
       {value ? (
         <button
           type="button"
+          disabled={disabled}
           onClick={() => {
             onChange("");
             closeList();
           }}
           aria-label="Kosongkan isian"
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-brand-muted transition-colors hover:text-brand-dark"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-brand-muted transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           <X size={13} />
         </button>
       ) : (
         <button
           type="button"
+          disabled={disabled}
           onClick={() => setOpen((current) => !current)}
           aria-label={open ? "Tutup pilihan" : "Buka pilihan"}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-brand-muted transition-colors hover:text-brand-dark"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-brand-muted transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ChevronDown size={13} />
         </button>

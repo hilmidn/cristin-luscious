@@ -8,6 +8,8 @@
 /** Semua tanggal & waktu di aplikasi mengikuti WIB. */
 export const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
+export type FulfillmentType = "STOCK" | "PRE_ORDER";
+
 export type ServiceType = "PICKUP" | "ANTAR";
 
 export type OrderStatus =
@@ -227,6 +229,72 @@ export function jakartaDateKey(value: Date): string {
     parts.find((item) => item.type === type)?.value ?? "";
 
   return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+/** Tanggal paling awal untuk pre-order web (H+3 kalender WIB). */
+export function minimumPreOrderDate(now = new Date()): string {
+  const [year, month, day] = jakartaDateKey(now).split("-").map(Number);
+
+  return new Date(Date.UTC(year, month - 1, day + 3))
+    .toISOString()
+    .slice(0, 10);
+}
+
+function isValidDateKey(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.toISOString().slice(0, 10) === value
+  );
+}
+
+/** Web hanya menerima hari ini atau tanggal pre-order minimal H+3 WIB. */
+export function isAllowedWebOrderDate(
+  value: string,
+  now = new Date(),
+): boolean {
+  if (!isValidDateKey(value)) {
+    return false;
+  }
+
+  return value === jakartaDateKey(now) || value >= minimumPreOrderDate(now);
+}
+
+/** Semua item harus punya varian dan stok gabungan harus mencukupi. */
+export function canFulfillFromStock(
+  items: { variantId: string | null; quantity: number }[],
+  stockByVariant: Readonly<Record<string, number>>,
+): boolean {
+  if (items.length === 0) {
+    return false;
+  }
+
+  const requiredByVariant = new Map<string, number>();
+
+  for (const item of items) {
+    if (
+      !item.variantId ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < 1
+    ) {
+      return false;
+    }
+
+    requiredByVariant.set(
+      item.variantId,
+      (requiredByVariant.get(item.variantId) ?? 0) + item.quantity,
+    );
+  }
+
+  return Array.from(requiredByVariant).every(
+    ([variantId, quantity]) =>
+      (stockByVariant[variantId] ?? 0) >= quantity,
+  );
 }
 
 /** Instant UTC untuk pukul 00:00 WIB pada tanggal tersebut. */

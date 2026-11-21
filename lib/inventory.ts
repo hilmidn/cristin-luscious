@@ -391,7 +391,12 @@ export async function deductIngredientsForOrder(
     select: {
       code: true,
       items: {
-        select: { productId: true, variantId: true, quantity: true },
+        select: {
+          productId: true,
+          variantId: true,
+          quantity: true,
+          fulfillmentType: true,
+        },
       },
     },
   });
@@ -400,12 +405,20 @@ export async function deductIngredientsForOrder(
     return { skipped: true, deductedCount: 0 };
   }
 
+  if (order.items.some((item) => item.fulfillmentType === null)) {
+    throw new Error(
+      `Fulfillment item nota ${order.code} belum diklasifikasikan.`,
+    );
+  }
+
   const needs = await computeOrderNeeds(
-    order.items.map((item) => ({
-      productId: item.productId,
-      variantId: item.variantId,
-      quantity: item.quantity,
-    })),
+    order.items
+      .filter((item) => item.fulfillmentType === "PRE_ORDER")
+      .map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+      })),
     tx,
   );
 

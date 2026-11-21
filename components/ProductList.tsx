@@ -8,9 +8,10 @@ import { productImageSrc, type CatalogProduct } from "@/lib/catalog-types";
 
 type ProductListProps = {
   products: CatalogProduct[];
+  stock: Record<string, number>;
 };
 
-export default function ProductList({ products }: ProductListProps) {
+export default function ProductList({ products, stock }: ProductListProps) {
   return (
     <section
       id="products"
@@ -59,6 +60,14 @@ export default function ProductList({ products }: ProductListProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
             {products.map((product, index) => {
               const isFeatured = index === 0 || index === 3;
+              const inStockVariantCount = product.variants.filter(
+                (variant) => (stock[variant.id] ?? 0) > 0,
+              ).length;
+              const availability = !product.orderable || !product.hasVariants
+                ? "Hubungi kami untuk pemesanan"
+                : inStockVariantCount > 0
+                  ? `Stok hari ini · ${inStockVariantCount} varian`
+                  : "Pre-order tersedia";
 
               return (
                 <div
@@ -102,14 +111,8 @@ export default function ProductList({ products }: ProductListProps) {
 
                   {/* Highlights Bullet Tags */}
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-brand-border/60">
-                    <span
-                      className={`text-[9px] font-semibold tracking-wider uppercase px-2.5 py-1 border ${
-                        product.fulfillmentMode === "READY"
-                          ? "bg-brand-dark text-brand-bg border-brand-dark"
-                          : "bg-brand-bg text-brand-text border-brand-border"
-                      }`}
-                    >
-                      {product.fulfillmentMode === "READY" ? "Ready Stock" : "Pre-order"}
+                    <span className="border border-brand-border bg-brand-bg px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-brand-text">
+                      {availability}
                     </span>
                     {product.features.map((feature, fIdx) => (
                       <span

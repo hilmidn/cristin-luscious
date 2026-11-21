@@ -216,6 +216,7 @@ export default function OrderForm({
   }
 
   const isDelivery = serviceType === "ANTAR";
+  const isCompletedOrder = order?.status === "SELESAI";
 
   const previewTotals = calculateOrderTotals(
     items.map((item) => ({
@@ -350,6 +351,13 @@ export default function OrderForm({
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-8">
+          {isCompletedOrder && (
+            <div className="border border-brand-border bg-brand-card px-4 py-3 font-sans text-[11px] leading-relaxed text-brand-text">
+              Pesanan selesai: data kontak dan catatan masih bisa dikoreksi.
+              Item, jumlah, tanggal, dan rincian pemenuhan dikunci.
+            </div>
+          )}
+
           {/* Data pemesan */}
           <section className="border border-brand-border bg-brand-card/40 p-5 sm:p-6">
             <div className="mb-6 flex items-center justify-between gap-4 border-b border-brand-border pb-4">
@@ -424,6 +432,7 @@ export default function OrderForm({
                   onChange={(event) =>
                     handleServiceTypeChange(event.target.value as ServiceType)
                   }
+                  disabled={isCompletedOrder}
                   className={`${inputClass} pr-10`}
                 >
                   {SERVICE_TYPES.map((type) => (
@@ -444,6 +453,7 @@ export default function OrderForm({
                   value={scheduledDate}
                   onChange={(event) => setScheduledDate(event.target.value)}
                   required
+                  disabled={isCompletedOrder}
                   className={inputClass}
                 />
                 <p className="mt-1.5 font-sans text-[9px] text-brand-muted">
@@ -463,6 +473,7 @@ export default function OrderForm({
                   value={source}
                   onChange={setSource}
                   suggestions={sourceSuggestions}
+                  disabled={isCompletedOrder}
                 />
                 <p className="mt-1.5 font-sans text-[9px] text-brand-muted">
                   Ketik bebas, atau pilih dari sumber yang sudah dipakai di
@@ -481,6 +492,7 @@ export default function OrderForm({
                       value={deliveryPoint}
                       onChange={(event) => setDeliveryPoint(event.target.value)}
                       required
+                      disabled={isCompletedOrder}
                       rows={2}
                       placeholder="Patokan / detail lokasi, mis. dekat Alun-alun Wonosobo, rumah cat biru"
                       className={`${inputClass} resize-y leading-relaxed`}
@@ -500,6 +512,7 @@ export default function OrderForm({
                       onChange={(event) =>
                         setDeliveryMapUrl(event.target.value)
                       }
+                      disabled={isCompletedOrder}
                       placeholder="https://maps.app.goo.gl/..."
                       className={inputClass}
                     />
@@ -541,7 +554,8 @@ export default function OrderForm({
               <button
                 type="button"
                 onClick={addItem}
-                className="inline-flex w-fit items-center gap-2 border border-brand-dark bg-brand-dark px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark"
+                disabled={isCompletedOrder}
+                className="inline-flex w-fit items-center gap-2 border border-brand-dark bg-brand-dark px-4 py-2.5 font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus size={13} />
                 Tambah Item
@@ -593,7 +607,8 @@ export default function OrderForm({
                             )
                           }
                           aria-label="Hapus item"
-                          className="p-1.5 text-brand-text transition-colors hover:text-brand-dark"
+                          disabled={isCompletedOrder}
+                          className="p-1.5 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -611,6 +626,7 @@ export default function OrderForm({
                               )
                             }
                             required
+                            disabled={isCompletedOrder}
                             className={`${inputClass} pr-10`}
                           >
                             <option value="">Pilih varian…</option>
@@ -664,6 +680,7 @@ export default function OrderForm({
                               })
                             }
                             required
+                            disabled={isCompletedOrder}
                             className={inputClass}
                           />
                         </div>
@@ -682,6 +699,7 @@ export default function OrderForm({
                                 })
                               }
                               placeholder="Kosongkan jika menyusul"
+                              disabled={isCompletedOrder}
                               className={inputClass}
                             />
                           ) : (
@@ -759,7 +777,7 @@ export default function OrderForm({
                 min={0}
                 step={1}
                 value={isDelivery ? shippingCost : "0"}
-                disabled={!isDelivery}
+                disabled={isCompletedOrder || !isDelivery}
                 onChange={(event) => setShippingCost(event.target.value)}
                 className={inputClass}
               />
@@ -798,6 +816,7 @@ export default function OrderForm({
             <SelectField
               value={status}
               onChange={(event) => setStatus(event.target.value as OrderStatus)}
+              disabled={isCompletedOrder}
               className={`${inputClass} pr-10`}
             >
               {ORDER_STATUSES.map((option) => (

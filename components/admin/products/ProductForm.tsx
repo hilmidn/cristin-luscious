@@ -81,9 +81,6 @@ export default function ProductForm({ product }: ProductFormProps) {
   );
   const [customNote, setCustomNote] = useState(product?.customNote ?? "");
   const [published, setPublished] = useState(product?.published ?? true);
-  const [fulfillmentMode, setFulfillmentMode] = useState<"PRE_ORDER" | "READY">(
-    product?.fulfillmentMode ?? "PRE_ORDER",
-  );
   const [orderable, setOrderable] = useState(product?.orderable ?? true);
   const [sortOrder, setSortOrder] = useState(String(product?.sortOrder ?? 0));
   const [variants, setVariants] = useState<VariantDraft[]>(() =>
@@ -160,7 +157,6 @@ export default function ProductForm({ product }: ProductFormProps) {
         .filter(Boolean),
       customNote: customNote.trim() || null,
       published,
-      fulfillmentMode,
       orderable,
       sortOrder: sortOrder.trim() === "" ? 0 : Number(sortOrder),
       variants: variants.map((variant, index) => ({
@@ -322,29 +318,6 @@ export default function ProductForm({ product }: ProductFormProps) {
                   placeholder="Tampil jika produk tidak punya varian, misalnya detail pemesanan custom cake."
                   className={`${inputClass} resize-y leading-relaxed`}
                 />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label htmlFor="fulfillmentMode" className={labelClass}>
-                  Cara Pemenuhan
-                </label>
-                <select
-                  id="fulfillmentMode"
-                  value={fulfillmentMode}
-                  onChange={(event) =>
-                    setFulfillmentMode(
-                      event.target.value === "READY" ? "READY" : "PRE_ORDER",
-                    )
-                  }
-                  className={inputClass}
-                >
-                  <option value="PRE_ORDER">Pre-order — dibuat setelah pesanan masuk</option>
-                  <option value="READY">Ready stock — dijual dari stok jadi</option>
-                </select>
-                <p className="mt-1.5 font-sans text-[9px] leading-relaxed text-brand-muted">
-                  Produk READY diambil hari ini langsung memotong stok jadi
-                  (halaman Stok Jadi) dan tidak masuk kalender produksi.
-                </p>
               </div>
 
               <div className="sm:col-span-2">

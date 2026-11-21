@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { adjustStockAction, getMovementsAction, restockAction } from "@/app/admin/(panel)/stock/actions";
 import {
-  FULFILLMENT_LABEL,
   STOCK_MOVEMENT_LABEL,
   type StockMovementRow,
   type StockRow,
@@ -78,13 +77,13 @@ export function StockClient({ stock }: { stock: StockRow[] }) {
     );
   }, [stock, search]);
 
-  const readyCount = useMemo(
-    () => stock.filter((row) => row.fulfillmentMode === "READY").length,
+  const inStockCount = useMemo(
+    () => stock.filter((row) => row.stockQty > 0).length,
     [stock],
   );
 
-  const outOfStockCount = useMemo(
-    () => stock.filter((row) => row.fulfillmentMode === "READY" && row.stockQty <= 0).length,
+  const preorderCount = useMemo(
+    () => stock.filter((row) => row.stockQty <= 0).length,
     [stock],
   );
 
@@ -181,18 +180,18 @@ export function StockClient({ stock }: { stock: StockRow[] }) {
         </div>
         <div className="border border-brand-border bg-brand-card px-5 py-4">
           <span className="block font-sans text-[8px] font-bold uppercase tracking-[0.28em] text-brand-text">
-            Varian Ready
+            Stok Tersedia Hari Ini
           </span>
           <p className="mt-1.5 font-playfair text-2xl font-bold text-brand-dark">
-            {readyCount}
+            {inStockCount}
           </p>
         </div>
         <div className="col-span-2 border border-brand-border bg-brand-card px-5 py-4 sm:col-span-1">
           <span className="block font-sans text-[8px] font-bold uppercase tracking-[0.28em] text-brand-text">
-            Stok Habis
+            Perlu Pre-order
           </span>
           <p className="mt-1.5 font-playfair text-2xl font-bold text-brand-dark">
-            {outOfStockCount}
+            {preorderCount}
           </p>
         </div>
       </div>
@@ -222,27 +221,27 @@ export function StockClient({ stock }: { stock: StockRow[] }) {
               <tr>
                 <th className="px-5 py-3.5">Produk</th>
                 <th className="px-5 py-3.5">Varian</th>
-                <th className="px-5 py-3.5">Mode</th>
+                <th className="px-5 py-3.5">Ketersediaan</th>
                 <th className="px-5 py-3.5">Stok</th>
                 <th className="px-5 py-3.5 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((row) => {
-                const isOut = row.fulfillmentMode === "READY" && row.stockQty <= 0;
+                const needsPreOrder = row.stockQty <= 0;
                 const menuOpen = openMenuId === row.variantId;
 
                 return (
                   <tr
                     key={row.variantId}
                     className={`border-b border-brand-border/70 transition-colors last:border-b-0 ${
-                      isOut ? "bg-red-50/60" : "bg-brand-bg"
+                      needsPreOrder ? "bg-brand-card/60" : "bg-brand-bg"
                     } hover:bg-brand-card/60`}
                   >
                     <td className="px-5 py-3.5">
                       <span
                         className={`font-semibold uppercase tracking-[0.06em] ${
-                          isOut ? "text-red-600" : "text-brand-dark"
+                          "text-brand-dark"
                         }`}
                       >
                         {row.productName}
@@ -254,17 +253,17 @@ export function StockClient({ stock }: { stock: StockRow[] }) {
                     <td className="px-5 py-3.5">
                       <span
                         className={`border px-2 py-1 font-sans text-[8px] font-bold uppercase tracking-[0.18em] ${
-                          row.fulfillmentMode === "READY"
-                            ? "border-brand-dark bg-brand-dark text-brand-bg"
-                            : "border-brand-border text-brand-text"
+                          needsPreOrder
+                            ? "border-brand-border text-brand-text"
+                            : "border-brand-dark bg-brand-dark text-brand-bg"
                         }`}
                       >
-                        {FULFILLMENT_LABEL[row.fulfillmentMode]}
+                        {needsPreOrder ? "Pre-order tersedia" : "Stok hari ini"}
                       </span>
                     </td>
                     <td
                       className={`whitespace-nowrap px-5 py-3.5 font-mono text-[11px] ${
-                        isOut ? "font-semibold text-red-600" : ""
+                        needsPreOrder ? "font-semibold text-brand-text" : ""
                       }`}
                     >
                       {row.stockQty.toLocaleString("id-ID")}

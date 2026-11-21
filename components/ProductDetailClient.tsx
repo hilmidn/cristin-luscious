@@ -35,9 +35,8 @@ export default function ProductDetailClient({
     selectedVariant?.image.trim() ? selectedVariant.image : product.image,
   );
   const activePrice = selectedVariant?.price ?? null;
-  const isSelectedOutOfStock =
-    product.fulfillmentMode === "READY" &&
-    (stock?.[selectedVariant?.id ?? ""] ?? 0) <= 0;
+  const selectedStock =
+    selectedVariant && stock ? stock[selectedVariant.id] : undefined;
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
@@ -134,14 +133,10 @@ export default function ProductDetailClient({
               </h1>
 
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <span
-                  className={`px-2.5 py-1 text-[9px] font-semibold tracking-widest uppercase font-sans border ${
-                    product.fulfillmentMode === "READY"
-                      ? "bg-brand-dark text-brand-bg border-brand-dark"
-                      : "bg-brand-bg text-brand-text border-brand-border"
-                  }`}
-                >
-                  {product.fulfillmentMode === "READY" ? "Ready Stock" : "Pre-order"}
+                <span className="border border-brand-border bg-brand-bg px-2.5 py-1 font-sans text-[9px] font-semibold uppercase tracking-widest text-brand-text">
+                  {selectedStock && selectedStock > 0
+                    ? `Stok hari ini · ${selectedStock}`
+                    : "Pre-order tersedia"}
                 </span>
                 {product.orderable && product.hasVariants && (
                   <a
@@ -214,8 +209,7 @@ export default function ProductDetailClient({
                                 <p className="font-sans text-[10px] text-brand-text">
                                   {v.price}
                                 </p>
-                                {product.fulfillmentMode === "READY" &&
-                                  stock?.[v.id] !== undefined && (
+                                {stock?.[v.id] !== undefined && (
                                     <span
                                       className={`text-[8px] tracking-widest uppercase px-2 py-0.5 border ${
                                         (stock[v.id] ?? 0) > 0
@@ -224,8 +218,8 @@ export default function ProductDetailClient({
                                       }`}
                                     >
                                       {(stock[v.id] ?? 0) > 0
-                                        ? `Stok ${stock[v.id]}`
-                                        : "Habis"}
+                                        ? `Stok hari ini ${stock[v.id]}`
+                                        : "Pre-order tersedia"}
                                     </span>
                                   )}
                               </div>
@@ -309,19 +303,16 @@ export default function ProductDetailClient({
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={isSelectedOutOfStock}
                   className="flex w-full items-center justify-center gap-3 px-8 py-4 border border-brand-dark bg-brand-card font-semibold text-xs uppercase tracking-widest text-brand-dark hover:bg-brand-dark hover:text-brand-bg transition-all duration-300 disabled:cursor-not-allowed disabled:border-brand-border disabled:text-brand-muted disabled:hover:bg-brand-card"
                 >
                   <ShoppingBag size={14} />
-                  {isSelectedOutOfStock
-                    ? "Habis hari ini — pesan lewat tanggal lain"
-                    : "Tambah ke Keranjang"}
+                  Tambah ke Keranjang
                 </button>
 
                 <p className="text-center font-sans text-[10px] tracking-wide text-brand-text">
-                  {product.fulfillmentMode === "READY"
-                    ? `Ready stock${stock?.[selectedVariant.id] !== undefined ? ` — sisa ${stock[selectedVariant.id]} hari ini` : ""}`
-                    : "Pre-order — pilih tanggal ambil saat checkout"}
+                  {selectedStock && selectedStock > 0
+                    ? "Bisa diambil hari ini jika stok seluruh keranjang mencukupi."
+                    : "Tetap bisa dipesan sebagai pre-order, mulai H+3 saat checkout."}
                   {addedVariant === selectedVariant.id && (
                     <span
                       className="ml-2 font-semibold text-brand-dark"
@@ -371,11 +362,10 @@ export default function ProductDetailClient({
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={isSelectedOutOfStock}
               className="flex shrink-0 items-center justify-center gap-2 border border-brand-dark bg-brand-dark px-4 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
             >
               <ShoppingBag size={14} />
-              {isSelectedOutOfStock ? "Stok Habis" : "Tambah ke Keranjang"}
+              Tambah ke Keranjang
             </button>
           </div>
           {addedVariant === selectedVariant.id && (

@@ -1,7 +1,4 @@
-// Tipe & konstanta stok varian — bebas import server-only karena dipakai
-// komponen client (halaman stok admin).
-
-export type FulfillmentMode = "PRE_ORDER" | "READY";
+// Tipe stok varian — bebas import server-only karena dipakai komponen client.
 
 export type StockMovementType = "IN" | "OUT" | "ADJUST";
 
@@ -9,7 +6,6 @@ export type StockRow = {
   productId: string;
   productName: string;
   productImage: string;
-  fulfillmentMode: FulfillmentMode;
   variantId: string;
   variantName: string;
   stockQty: number;
@@ -32,7 +28,3 @@ export const STOCK_MOVEMENT_LABEL: Record<StockMovementType, string> = {
   ADJUST: "Koreksi",
 };
 
-export const FULFILLMENT_LABEL: Record<FulfillmentMode, string> = {
-  PRE_ORDER: "Pre-order",
-  READY: "Ready stock",
-};

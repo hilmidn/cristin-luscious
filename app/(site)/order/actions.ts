@@ -38,17 +38,28 @@ export async function submitWebOrder(input: {
   if (variantIds.length > 0) {
     const rows = await getPrisma().productVariant.findMany({
       where: { id: { in: variantIds } },
-      select: { id: true, product: { select: { orderable: true } } },
+      select: {
+        id: true,
+        published: true,
+        product: { select: { published: true, orderable: true } },
+      },
     });
 
-    const orderableById = new Map(rows.map((row) => [row.id, row.product.orderable]));
+    const variantById = new Map(rows.map((row) => [row.id, row]));
 
     for (const variantId of variantIds) {
-      if (orderableById.get(variantId) === false) {
+      const variant = variantById.get(variantId);
+
+      if (
+        !variant ||
+        !variant.published ||
+        !variant.product.published ||
+        !variant.product.orderable
+      ) {
         return {
           ok: false,
           error:
-            "Ada produk di keranjang yang sedang tidak bisa dipesan online. Hapus itemnya lalu coba lagi.",
+            "Ada produk di keranjang yang sedang tidak tersedia untuk pesanan online. Hapus itemnya lalu coba lagi.",
         };
       }
     }
@@ -79,7 +90,7 @@ export async function submitWebOrder(input: {
     })),
   };
 
-  const result = await saveOrderCore(payload);
+  const result = await saveOrderCore(payload, "WEB");
 
   if (!result.ok) {
     return { ok: false, error: result.error };
