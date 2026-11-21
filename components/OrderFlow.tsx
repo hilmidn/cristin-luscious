@@ -558,7 +558,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                             </div>
                           </div>
 
-                          {fulfillmentChoice === "STOCK" && quantity > sisa && (
+                          {fulfillmentChoice === "STOCK" &&
+                            sisa > 0 &&
+                            quantity > sisa && (
                             <p className="mt-2 border border-red-500 bg-red-50/60 px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-red-700">
                               Melebihi stok hari ini — kurang {quantity - sisa}
                             </p>
