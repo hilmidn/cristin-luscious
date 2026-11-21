@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/v1/stock — stok jadi per varian untuk app mobile.
- * Response: products[] (nama + fulfillmentMode + variants[] berisi stockQty).
+ * Response: products[] (nama + variants[] berisi stockQty). Ketersediaan
+ * dihitung dinamis dari stok; tidak ada lagi mode produk statis.
  */
 export async function GET(request: Request) {
   try {
@@ -16,7 +17,6 @@ export async function GET(request: Request) {
       select: {
         id: true,
         name: true,
-        fulfillmentMode: true,
         variants: {
           orderBy: { name: "asc" },
           select: { id: true, name: true, stockQty: true },

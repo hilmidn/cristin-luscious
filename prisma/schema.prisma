@@ -54,13 +54,6 @@ enum OrderStatus {
 /// READY dijual dari stok jadi yang tersedia hari ini.
 ///
 /// DEPRECATED (plan 2026-11-21-dynamic-stock-preorder): mode statis produk
-/// akan dihapus setelah kode baru sepenuhnya membaca ketersediaan dinamis
-/// dari stok varian (expand-contract; jangan dipakai di kode baru).
-enum FulfillmentMode {
-  PRE_ORDER
-  READY
-}
-
 /// Cara pemenuhan aktual satu item pesanan (snapshot saat nota dibuat):
 /// STOCK dijual dari stok jadi, PRE_ORDER dibuat lewat produksi.
 /// Nullable untuk data lama sebelum backfill selesai ditinjau.
@@ -70,20 +63,19 @@ enum FulfillmentType {
 }
 
 model Product {
-  id              String          @id @default(cuid())
-  slug            String          @unique
-  name            String
-  tagline         String
-  description     String
-  image           String
-  features        String[]        @default([])
-  customNote      String?
-  published       Boolean         @default(true)
-  fulfillmentMode FulfillmentMode @default(PRE_ORDER)
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  tagline     String
+  description String
+  image       String
+  features    String[] @default([])
+  customNote  String?
+  published   Boolean  @default(true)
   // false = dipajang di katalog tapi tidak bisa dipesan online (disembunyikan
   // dari halaman /order) — mis. produk yang produksinya ditunda.
-  orderable       Boolean         @default(true)
-  sortOrder       Int             @default(0)
+  orderable   Boolean  @default(true)
+  sortOrder   Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
