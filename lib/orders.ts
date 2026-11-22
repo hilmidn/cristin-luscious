@@ -7,6 +7,7 @@ import {
   monthKeyLabel,
   monthRangeFromKey,
   normalizePhone,
+  rangeFromKeys,
   shiftMonthKeyValue,
 } from "./order-types";
 import type {
@@ -24,6 +25,9 @@ type OrderFilters = {
   q?: string;
   /** Bulan WIB `YYYY-MM`, berbasis tanggal ambil/kirim (fallback `createdAt`). */
   month?: string;
+  /** Rentang tanggal WIB `YYYY-MM-DD` (menggantikan `month` bila keduanya ada). */
+  from?: string;
+  to?: string;
   limit?: number;
 };
 
@@ -40,6 +44,28 @@ function monthFilter(monthKey: string): Prisma.OrderWhereInput {
       { scheduledAt: null, createdAt: { gte: start, lt: end } },
     ],
   };
+}
+
+/** Pilih filter period: rentang tanggal bila lengkap, else bulan. */
+function periodFilter(
+  period: { month?: string; from?: string; to?: string } | null,
+): Prisma.OrderWhereInput | null {
+  if (period?.from && period?.to) {
+    const { start, end } = rangeFromKeys(period.from, period.to);
+
+    return {
+      OR: [
+        { scheduledAt: { gte: start, lt: end } },
+        { scheduledAt: null, createdAt: { gte: start, lt: end } },
+      ],
+    };
+  }
+
+  if (period?.month) {
+    return monthFilter(period.month);
+  }
+
+  return null;
 }
 
 const orderItemSelect = {
@@ -148,8 +174,10 @@ export async function getAdminOrders(
     });
   }
 
-  if (filters.month) {
-    conditions.push(monthFilter(filters.month));
+  const period = periodFilter(filters);
+
+  if (period) {
+    conditions.push(period);
   }
 
   const orders = await getPrisma().order.findMany({
@@ -280,7 +308,8 @@ export async function getOrderStats() {
 }
 
 export type RecapStats = {
-  monthKey: string | null;
+  from: string | null;
+  to: string | null;
   selesai: number;
   dibatalkan: number;
   revenue: number;
@@ -288,30 +317,31 @@ export type RecapStats = {
 };
 
 /**
- * Statistik pesanan tertutup untuk satu bulan (`monthKey` null = semua bulan).
- * Dipakai halaman Rekap Pesanan agar kartu angka ikut filter bulan.
+ * Statistik pesanan tertutup untuk satu period (rentang tanggal atau bulan;
+ * null = semua). Dipakai halaman Rekap Pesanan agar kartu angka ikut filter.
  */
 export async function getRecapStats(
-  monthKey: string | null,
+  period: { month?: string; from?: string; to?: string } | null,
 ): Promise<RecapStats> {
   const prisma = getPrisma();
-  const month = monthKey ? monthFilter(monthKey) : {};
+  const periodWhere = periodFilter(period) ?? {};
 
   const [selesai, dibatalkan, revenue, cancelled] = await Promise.all([
-    prisma.order.count({ where: { status: "SELESAI", ...month } }),
-    prisma.order.count({ where: { status: "DIBATALKAN", ...month } }),
+    prisma.order.count({ where: { status: "SELESAI", ...periodWhere } }),
+    prisma.order.count({ where: { status: "DIBATALKAN", ...periodWhere } }),
     prisma.order.aggregate({
       _sum: { total: true },
-      where: { status: "SELESAI", ...month },
+      where: { status: "SELESAI", ...periodWhere },
     }),
     prisma.order.aggregate({
       _sum: { total: true },
-      where: { status: "DIBATALKAN", ...month },
+      where: { status: "DIBATALKAN", ...periodWhere },
     }),
   ]);
 
   return {
-    monthKey,
+    from: period?.from ?? null,
+    to: period?.to ?? null,
     selesai,
     dibatalkan,
     revenue: revenue._sum.total ?? 0,

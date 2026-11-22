@@ -20,7 +20,8 @@ type ProductSalesAnalyticsProps = {
   totalRevenue: number;
   totalQuantity: number;
   completedOrdersCount: number;
-  initialMonth?: string;
+  initialFrom?: string;
+  initialTo?: string;
   initialSearch?: string;
 };
 
@@ -29,11 +30,13 @@ export function ProductSalesAnalytics({
   totalRevenue,
   totalQuantity,
   completedOrdersCount,
-  initialMonth = "",
+  initialFrom = "",
+  initialTo = "",
   initialSearch = "",
 }: ProductSalesAnalyticsProps) {
   const [search, setSearch] = useState(initialSearch);
-  const [month, setMonth] = useState(initialMonth);
+  const [startDate, setStartDate] = useState(initialFrom);
+  const [endDate, setEndDate] = useState(initialTo);
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
 
   // Find best seller by quantity and top revenue by product
@@ -100,7 +103,7 @@ export function ProductSalesAnalytics({
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `laporan-penjualan-produk-${month || "semua"}.csv`,
+      `laporan-penjualan-produk-${startDate || "awal"}_${endDate || "akhir"}.csv`,
     );
     document.body.appendChild(link);
     link.click();
@@ -202,26 +205,42 @@ export function ProductSalesAnalytics({
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700">
-            <span className="text-xs text-stone-500">Bulan:</span>
+            <span className="text-xs text-stone-500">Periode:</span>
             <input
-              type="month"
-              value={month}
+              type="date"
+              value={startDate}
               onChange={(e) => {
-                const m = e.target.value;
-                setMonth(m);
+                setStartDate(e.target.value);
                 const url = new URL(window.location.href);
-                if (m) url.searchParams.set("month", m);
-                else url.searchParams.delete("month");
+                if (e.target.value) url.searchParams.set("from", e.target.value);
+                else url.searchParams.delete("from");
                 window.location.href = url.toString();
               }}
               className="bg-transparent font-medium text-stone-800 focus:outline-hidden text-sm"
+              aria-label="Dari tanggal"
             />
-            {month && (
+            <span className="text-xs text-stone-400">s.d.</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                const url = new URL(window.location.href);
+                if (e.target.value) url.searchParams.set("to", e.target.value);
+                else url.searchParams.delete("to");
+                window.location.href = url.toString();
+              }}
+              className="bg-transparent font-medium text-stone-800 focus:outline-hidden text-sm"
+              aria-label="Sampai tanggal"
+            />
+            {(startDate || endDate) && (
               <button
                 onClick={() => {
-                  setMonth("");
+                  setStartDate("");
+                  setEndDate("");
                   const url = new URL(window.location.href);
-                  url.searchParams.delete("month");
+                  url.searchParams.delete("from");
+                  url.searchParams.delete("to");
                   window.location.href = url.toString();
                 }}
                 className="text-xs text-stone-400 hover:text-stone-700 ml-1"

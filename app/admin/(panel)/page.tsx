@@ -38,7 +38,7 @@ export default async function AdminDashboardPage() {
 
   const [stats, recap, trend, recentOrders] = await Promise.all([
     getOrderStats(),
-    getRecapStats(currentMonth),
+    getRecapStats({ month: currentMonth }),
     getOrderTrend(6),
     getAdminOrders({ statuses: ACTIVE_STATUSES, limit: 5 }),
   ]);

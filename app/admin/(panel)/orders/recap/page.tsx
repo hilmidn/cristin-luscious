@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import DateRangeFilter from "@/components/admin/DateRangeFilter";
 import PageHeading from "@/components/admin/PageHeading";
 import OrderFilters from "@/components/admin/orders/OrderFilters";
 import OrderTable from "@/components/admin/orders/OrderTable";
 import {
   getAdminOrders,
-  getClosedOrderMonths,
   getOrderSources,
   getRecapStats,
 } from "@/lib/orders";
 import {
+  dateKeyLabel,
   formatRupiah,
+  isDateKeyValue,
+  jakartaDateKey,
   jakartaMonthKey,
-  monthKeyLabel,
+  monthRangeFromKey,
   type OrderStatus,
 } from "@/lib/order-types";
 
@@ -32,6 +35,8 @@ type Props = {
     source?: string;
     q?: string;
     month?: string;
+    from?: string;
+    to?: string;
   }>;
 };
 
@@ -42,34 +47,43 @@ export default async function OrderRecapPage({ searchParams }: Props) {
     : undefined;
   const statuses = requestedStatus ? [requestedStatus] : CLOSED_STATUSES;
 
-  const currentMonth = jakartaMonthKey(new Date());
-  const closedMonths = await getClosedOrderMonths();
-  // Bulan berjalan selalu ada di pilihan agar filter default tetap terbaca.
-  const monthOptions = [...new Set([currentMonth, ...closedMonths])].sort(
-    (a, b) => b.localeCompare(a),
-  );
+  // Rentang aktif: from/to; bookmark lama ?month= dipetakan ke rentang bulan.
+  const hasRange =
+    isDateKeyValue(params.from) && isDateKeyValue(params.to);
 
-  const monthKey =
-    params.month === "all"
-      ? null
-      : monthOptions.includes(params.month ?? "")
-        ? (params.month as string)
-        : currentMonth;
+  let from: string | undefined;
+  let to: string | undefined;
+
+  if (hasRange) {
+    from = params.from;
+    to = params.to;
+  } else if (params.month && params.month !== "all") {
+    const { start, end } = monthRangeFromKey(params.month);
+    from = jakartaDateKey(start);
+    to = jakartaDateKey(new Date(end.getTime() - 1));
+  } else {
+    const { start, end } = monthRangeFromKey(jakartaMonthKey(new Date()));
+    from = jakartaDateKey(start);
+    to = jakartaDateKey(new Date(end.getTime() - 1));
+  }
 
   const [orders, sources, stats] = await Promise.all([
     getAdminOrders({
       statuses,
       source: params.source?.trim() || undefined,
       q: params.q?.trim() || undefined,
-      month: monthKey ?? undefined,
+      from,
+      to,
     }),
     getOrderSources(),
-    getRecapStats(monthKey),
+    getRecapStats({ from, to }),
   ]);
 
-  const periodLabel = monthKey
-    ? monthKeyLabel(monthKey)
-    : "Semua bulan";
+  const periodLabel = hasRange
+    ? from === to
+      ? dateKeyLabel(from!)
+      : `${dateKeyLabel(from!)} – ${dateKeyLabel(to!)}`
+    : "Semua waktu";
 
   return (
     <>
@@ -77,7 +91,7 @@ export default async function OrderRecapPage({ searchParams }: Props) {
         eyebrow="Laporan"
         title="Rekap"
         accent="pesanan"
-        description="Arsip pesanan yang sudah selesai atau dibatalkan, dikelompokkan per bulan berdasarkan tanggal ambil / kirim. Pesanan aktif tetap di halaman Pesanan."
+        description="Arsip pesanan yang sudah selesai atau dibatalkan, difilter per rentang tanggal ambil / kirim. Pesanan aktif tetap di halaman Pesanan."
         actions={
           <Link
             href="/admin/orders"
@@ -136,18 +150,26 @@ export default async function OrderRecapPage({ searchParams }: Props) {
         </div>
       </div>
 
+      <DateRangeFilter
+        basePath="/admin/orders/recap"
+        initialFrom={hasRange ? (from as string) : ""}
+        initialTo={hasRange ? (to as string) : ""}
+        preserve={{
+          status: requestedStatus,
+          source: params.source,
+          q: params.q,
+        }}
+      />
+
       <OrderFilters
         statuses={CLOSED_STATUSES}
         sources={sources}
-        months={monthOptions}
-        params={{ ...params, month: monthKey ?? "all" }}
+        params={{ ...params, month: undefined }}
       />
 
       <OrderTable
         orders={orders}
-        emptyTitle={
-          monthKey ? `Belum ada pesanan tertutup di ${periodLabel}` : "Belum ada pesanan selesai"
-        }
+        emptyTitle={`Belum ada pesanan tertutup di ${periodLabel}`}
         emptyDescription="Pesanan yang ditandai Selesai atau Dibatalkan akan pindah ke rekap ini."
         emptyAction={{ href: "/admin/orders", label: "Lihat Pesanan Aktif" }}
       />
