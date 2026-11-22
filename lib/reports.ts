@@ -1,5 +1,6 @@
 import "server-only";
 
+import { jakartaDateKey } from "./order-types";
 import { getAdminOrders } from "./orders";
 import type {
   ProductSalesSummary,
@@ -20,9 +21,10 @@ export async function getProductSalesAnalytics(
   // Only consider completed orders ("SELESAI") for accurate financial and sales reports
   const completedOrders = orders.filter((o) => o.status === "SELESAI");
 
-  // Date filtering
+  // Date filtering — WIB, tanggal ambil/kirim (fallback createdAt), konsisten
+  // dengan halaman Rekap Pesanan.
   const filteredOrders = completedOrders.filter((order) => {
-    const orderDateStr = order.createdAt.toISOString().slice(0, 10); // YYYY-MM-DD
+    const orderDateStr = jakartaDateKey(order.scheduledAt ?? order.createdAt);
     const orderMonthStr = orderDateStr.slice(0, 7); // YYYY-MM
 
     if (filter.month && orderMonthStr !== filter.month) {

@@ -316,6 +316,39 @@ export function isMonthKeyValue(value: string | undefined): value is string {
   return Boolean(value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value));
 }
 
+/** Validasi tanggal ISO `YYYY-MM-DD`. */
+export function isDateKeyValue(value: string | undefined): value is string {
+  return Boolean(
+    value && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value),
+  );
+}
+
+/** Rentang WIB inklusif dua tanggal `YYYY-MM-DD` (end eksklusif +1 hari). */
+export function rangeFromKeys(fromKey: string, toKey: string): {
+  start: Date;
+  end: Date;
+} {
+  const [from, to] =
+    fromKey <= toKey ? [fromKey, toKey] : [toKey, fromKey];
+
+  const end = new Date(`${to}T00:00:00+07:00`);
+
+  return {
+    start: new Date(`${from}T00:00:00+07:00`),
+    end: new Date(end.getTime() + 24 * 60 * 60 * 1000),
+  };
+}
+
+/** "2026-11-17" -> "17 Nov 2026" (WIB). */
+export function dateKeyLabel(dateKey: string): string {
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${dateKey}T00:00:00+07:00`));
+}
+
 /** Geser bulan, mis. ("2026-01", -1) -> "2025-12". */
 export function shiftMonthKeyValue(monthKey: string, delta: number): string {
   const [year, month] = monthKey.split("-").map(Number);
