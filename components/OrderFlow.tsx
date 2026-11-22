@@ -152,12 +152,11 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
     stock,
   );
 
-  // Pilihan tidak pernah dialihkan otomatis: default "Ambil hari ini"
-  // sejak awal (keranjang kosong pun). Kalau stok keranjang tidak
-  // terpenuhi (mis. berkurang oleh pembeli lain), jalur hari ini
-  // dikunci dan pesanan wajib pre-order — dengan banner penjelasan.
-  const effectiveFulfillmentChoice =
-    rows.length === 0 || canUseStockToday ? fulfillmentChoice : "PRE_ORDER";
+  // Pilihan TIDAK pernah dialihkan otomatis ke Pre-order. Kalau stok
+  // keranjang tidak terpenuhi saat "Ambil hari ini", SUBMIT yang
+  // dikunci — user mengurangi/menghapus item atau memilih Pre-order
+  // sendiri lewat radio.
+  const effectiveFulfillmentChoice = fulfillmentChoice;
   const isPickupToday = effectiveFulfillmentChoice === "STOCK";
   const scheduledAt = isPickupToday ? today : preorderDate;
 
@@ -363,8 +362,8 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
                 !canUseStockToday &&
                 rows.length > 0 && (
                   <div className="border border-red-500 bg-red-50/60 p-4 font-sans text-[11px] leading-relaxed text-red-700">
-                    Stok hari ini tidak terpenuhi — Pesanan otomatis dialihkan
-                    ke pre-order.
+                    Stok hari ini tidak terpenuhi — kurangi atau hapus item
+                    yang kekurangan, atau pilih Pre-order.
                   </div>
                 )}
               <div className="space-y-3">
@@ -373,14 +372,13 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
                     effectiveFulfillmentChoice === "STOCK"
                       ? "border-brand-dark bg-brand-bg"
                       : "border-brand-border"
-                  } ${rows.length > 0 && !canUseStockToday ? "cursor-not-allowed opacity-60" : ""}`}
+                  }`}
                 >
                   <input
                     type="radio"
                     name="fulfillment"
                     value="STOCK"
                     checked={effectiveFulfillmentChoice === "STOCK"}
-                    disabled={rows.length > 0 && !canUseStockToday}
                     onChange={() => setFulfillmentChoice("STOCK")}
                     className="mt-0.5 accent-brand-dark"
                   />
@@ -686,9 +684,22 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
                     </div>
                   )}
 
+                  {fulfillmentChoice === "STOCK" &&
+                    !canUseStockToday &&
+                    rows.length > 0 && (
+                      <p className="text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-red-700">
+                        Stok hari ini tidak cukup — pesanan tidak bisa
+                        dikirim
+                      </p>
+                    )}
+
                   <button
                     onClick={handleSubmit}
-                    disabled={isPending || rows.length === 0}
+                    disabled={
+                      isPending ||
+                      rows.length === 0 ||
+                      (fulfillmentChoice === "STOCK" && !canUseStockToday)
+                    }
                     className="flex w-full items-center justify-center gap-2.5 border border-brand-dark bg-brand-dark px-6 py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
                   >
                     {isPending ? (
