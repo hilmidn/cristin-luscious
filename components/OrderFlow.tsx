@@ -10,6 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { submitWebOrder } from "@/app/(site)/order/actions";
+import { useLiveStock } from "@/components/useLiveStock";
 import {
   cartTotalQty,
   clearCart,
@@ -30,7 +31,15 @@ import {
   parseContactSnapshot,
   saveContact,
 } from "@/lib/contact-store";
-import { Minus, Plus, ShoppingBag, Trash2, Loader2, Check } from "lucide-react";
+import {
+  AlertTriangle,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Trash2,
+  Loader2,
+  Check,
+} from "lucide-react";
 
 type OrderFlowProps = {
   /** Hanya produk orderable ber-varian — difilter di page. */
@@ -67,7 +76,13 @@ type CartRow = {
   quantity: number;
 };
 
-export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
+export default function OrderFlow({
+  products,
+  stock: initialStock,
+  today,
+}: OrderFlowProps) {
+  // Stok live: poll 20s + refetch saat tab kembali aktif.
+  const stock = useLiveStock(initialStock);
   const [isPending, startTransition] = useTransition();
   const minimumPreorderDate = minimumPreOrderDate(
     new Date(`${today}T00:00:00+07:00`),
@@ -93,7 +108,9 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showCheckoutShortcut, setShowCheckoutShortcut] = useState(false);
+  const [showStockWarningFloat, setShowStockWarningFloat] = useState(false);
   const customerInfoRef = useRef<HTMLDivElement>(null);
+  const stockWarningRef = useRef<HTMLDivElement>(null);
 
   // Kontak terakhir tersimpan di localStorage — prefill nama & HP begitu ada.
   const contactSnapshot = useSyncExternalStore(
@@ -149,8 +166,16 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
     stock,
   );
 
-  const effectiveFulfillmentChoice =
-    rows.length === 0 || !canUseStockToday ? "PRE_ORDER" : fulfillmentChoice;
+  // Pilihan TIDAK pernah dialihkan otomatis ke Pre-order. Kalau stok
+  // keranjang tidak terpenuhi saat "Ambil hari ini", SUBMIT yang
+  // dikunci — user mengurangi/menghapus item atau memilih Pre-order
+  // sendiri lewat radio.
+  const effectiveFulfillmentChoice = fulfillmentChoice;
+
+  // Satu sumber kebenaran untuk warning stok: dipakai warning inline di
+  // kartu "Cara Pemesanan" dan banner floating versi mobile.
+  const stockWarningActive =
+    fulfillmentChoice === "STOCK" && !canUseStockToday && rows.length > 0;
   const isPickupToday = effectiveFulfillmentChoice === "STOCK";
   const scheduledAt = isPickupToday ? today : preorderDate;
 
@@ -181,6 +206,34 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
       window.removeEventListener("resize", updateShortcutVisibility);
     };
   }, [cartSnapshot]);
+
+  // Banner stok mobile hanya tampil saat warning inline sudah tidak
+  // terlihat — supaya tidak dobel dan tidak menutupi judul halaman.
+  useEffect(() => {
+    const updateVisibility = () => {
+      const target = stockWarningRef.current;
+      if (!stockWarningActive || !target) {
+        setShowStockWarningFloat(false);
+        return;
+      }
+
+      const rect = target.getBoundingClientRect();
+      setShowStockWarningFloat(
+        rect.bottom <= 0 || rect.top >= window.innerHeight,
+      );
+    };
+
+    updateVisibility();
+    if (!stockWarningActive) return;
+
+    window.addEventListener("scroll", updateVisibility, { passive: true });
+    window.addEventListener("resize", updateVisibility);
+
+    return () => {
+      window.removeEventListener("scroll", updateVisibility);
+      window.removeEventListener("resize", updateVisibility);
+    };
+  }, [stockWarningActive]);
 
   const handleSubmit = () => {
     setError(null);
@@ -352,28 +405,28 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             <div className="mb-8 border border-brand-border bg-brand-card p-5 md:p-6">
               <h2 className={labelClass}>Cara Pemesanan</h2>
 
-              {fulfillmentChoice === "STOCK" &&
-                !canUseStockToday &&
-                rows.length > 0 && (
-                  <div className="border border-red-500 bg-red-50/60 p-4 font-sans text-[11px] leading-relaxed text-red-700">
-                    Stok hari ini tidak terpenuhi — Pesanan otomatis dialihkan
-                    ke pre-order.
-                  </div>
-                )}
+              {stockWarningActive && (
+                <div
+                  ref={stockWarningRef}
+                  className="border border-red-500 bg-red-50/60 p-4 font-sans text-[11px] leading-relaxed text-red-700"
+                >
+                  Stok hari ini tidak terpenuhi — kurangi atau hapus item yang
+                  kekurangan, atau pilih Pre-order.
+                </div>
+              )}
               <div className="space-y-3">
                 <label
                   className={`flex cursor-pointer items-start gap-3 border p-4 ${
                     effectiveFulfillmentChoice === "STOCK"
                       ? "border-brand-dark bg-brand-bg"
                       : "border-brand-border"
-                  } ${!canUseStockToday ? "cursor-not-allowed opacity-60" : ""}`}
+                  }`}
                 >
                   <input
                     type="radio"
                     name="fulfillment"
                     value="STOCK"
                     checked={effectiveFulfillmentChoice === "STOCK"}
-                    disabled={!canUseStockToday}
                     onChange={() => setFulfillmentChoice("STOCK")}
                     className="mt-0.5 accent-brand-dark"
                   />
@@ -528,7 +581,15 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                                 onClick={() =>
                                   setCartQty(variant.id, quantity + 1)
                                 }
-                                disabled={quantity >= MAX_WEB_QTY}
+                                disabled={
+                                  quantity >= MAX_WEB_QTY ||
+                                  (isPickupToday && quantity >= sisa)
+                                }
+                                title={
+                                  isPickupToday && quantity >= sisa
+                                    ? "Maksimum stok hari ini"
+                                    : undefined
+                                }
                                 aria-label="Tambah"
                                 className="px-3 py-2 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
                               >
@@ -556,10 +617,15 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                             sisa > 0 &&
                             quantity > sisa && (
                               <p className="mt-2 border border-red-500 bg-red-50/60 px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-red-700">
-                                Melebihi stok hari ini — kurang{" "}
-                                {quantity - sisa}
+                                Melebihi stok hari ini
                               </p>
                             )}
+
+                          {isPickupToday && sisa === 0 && (
+                            <p className="mt-2 border border-red-500 bg-red-50/60 px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-red-700">
+                              Stok tidak tersedia
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -664,9 +730,19 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
                     </div>
                   )}
 
+                  {stockWarningActive && (
+                    <p className="text-center font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-red-700">
+                      Stok hari ini kurang
+                    </p>
+                  )}
+
                   <button
                     onClick={handleSubmit}
-                    disabled={isPending || rows.length === 0}
+                    disabled={
+                      isPending ||
+                      rows.length === 0 ||
+                      (fulfillmentChoice === "STOCK" && !canUseStockToday)
+                    }
                     className="flex w-full items-center justify-center gap-2.5 border border-brand-dark bg-brand-dark px-6 py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
                   >
                     {isPending ? (
@@ -689,11 +765,39 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
             <AddProductSheet
               products={products}
               stock={stock}
+              intent={fulfillmentChoice}
               onClose={() => setShowAdd(false)}
             />
           )}
         </div>
       </div>
+
+      {showStockWarningFloat && stockWarningActive && !showAdd && (
+        <div className="fixed inset-x-0 top-24 z-30 px-4 lg:hidden">
+          <div
+            role="status"
+            aria-live="polite"
+            className="mx-auto flex max-w-md items-center gap-3 border border-red-500 bg-red-50/95 px-4 py-3 shadow-[0_8px_24px_rgba(28,27,25,0.12)] backdrop-blur-sm"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 text-red-700" />
+            <div className="min-w-0 flex-1">
+              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-red-700">
+                Stok Tidak Terpenuhi
+              </p>
+              <p className="mt-0.5 font-sans text-[10px] leading-snug text-red-700/80">
+                Kurangi item atau Pilih Pre - Order.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFulfillmentChoice("PRE_ORDER")}
+              className="shrink-0 border border-red-700 bg-red-700 px-3 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-bg transition-colors hover:bg-transparent hover:text-red-700"
+            >
+              Pre-order
+            </button>
+          </div>
+        </div>
+      )}
 
       {showCheckoutShortcut && !showAdd && rows.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-border bg-brand-bg/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-8px_24px_rgba(28,27,25,0.08)] backdrop-blur-sm lg:hidden">
@@ -729,10 +833,13 @@ export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
 function AddProductSheet({
   products,
   stock,
+  intent,
   onClose,
 }: {
   products: CatalogProduct[];
   stock: Record<string, number>;
+  /** Intent pemenuhan saat ini — gerbang stok hanya saat STOCK. */
+  intent: "STOCK" | "PRE_ORDER";
   onClose: () => void;
 }) {
   const snapshot = useSyncExternalStore(
@@ -741,6 +848,8 @@ function AddProductSheet({
     () => "",
   );
   const cart = useMemo(() => parseCartSnapshot(snapshot), [snapshot]);
+
+  const pickupToday = intent === "STOCK";
 
   return (
     <div
@@ -815,9 +924,17 @@ function AddProductSheet({
                       {qty === 0 ? (
                         <button
                           onClick={() => setCartQty(variant.id, 1)}
+                          disabled={pickupToday && sisa === 0}
+                          title={
+                            pickupToday && sisa === 0
+                              ? "Hanya via pre-order — pilih jalur Pre-order untuk menambah"
+                              : undefined
+                          }
                           className="shrink-0 border border-brand-dark bg-brand-dark px-3.5 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
                         >
-                          Tambah
+                          {pickupToday && sisa === 0
+                            ? "Pre-order only"
+                            : "Tambah"}
                         </button>
                       ) : (
                         <div className="flex shrink-0 items-center border border-brand-border bg-brand-card">
@@ -833,7 +950,14 @@ function AddProductSheet({
                           </span>
                           <button
                             onClick={() => setCartQty(variant.id, qty + 1)}
-                            disabled={qty >= MAX_WEB_QTY}
+                            disabled={
+                              qty >= MAX_WEB_QTY || (pickupToday && qty >= sisa)
+                            }
+                            title={
+                              pickupToday && qty >= sisa
+                                ? "Maksimum stok hari ini"
+                                : undefined
+                            }
                             aria-label="Tambah"
                             className="px-2.5 py-2 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
                           >
