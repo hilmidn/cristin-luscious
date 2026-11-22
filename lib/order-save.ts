@@ -7,7 +7,6 @@ import {
   isMapUrl,
   isValidPhone,
   jakartaDateKey,
-  jakartaStartOfDay,
   minimumPreOrderDate,
   normalizePhone,
   ORDER_STATUSES,
@@ -547,16 +546,23 @@ export async function saveOrderCore(
 
           if (!code) {
             const now = new Date();
-            const startOfDay = jakartaStartOfDay(now);
-            const startOfNextDay = new Date(
-              startOfDay.getTime() + 24 * 60 * 60 * 1000,
-            );
+            const prefix = codePrefix(now);
 
-            const todayCount = await tx.order.count({
-              where: { createdAt: { gte: startOfDay, lt: startOfNextDay } },
+            const todayCodes = await tx.order.findMany({
+              where: { code: { startsWith: `${prefix}-` } },
+              select: { code: true },
             });
+            let maxSeq = 0;
 
-            code = `${codePrefix(now)}-${String(todayCount + 1).padStart(3, "0")}`;
+            for (const row of todayCodes) {
+              const seq = Number.parseInt(row.code.slice(prefix.length + 1), 10);
+
+              if (Number.isFinite(seq) && seq > maxSeq) {
+                maxSeq = seq;
+              }
+            }
+
+            code = `${prefix}-${String(maxSeq + 1).padStart(3, "0")}`;
           }
 
           const dbItemQueues = new Map<string, ExistingOrderItem[]>();
@@ -929,8 +935,15 @@ export async function saveOrderCore(
           continue;
         }
 
-        if (!existing && isCodeConflict(error) && codeAttempt < MAX_CODE_ATTEMPTS - 1) {
+        if (!existing && isCodeConflict(error)) {
           codeAttempt += 1;
+
+          if (codeAttempt >= MAX_CODE_ATTEMPTS) {
+            throw new Error(
+              "Gagal membuat kode pesanan. Coba simpan sekali lagi.",
+            );
+          }
+
           continue;
         }
 
