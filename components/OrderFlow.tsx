@@ -152,8 +152,12 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
     stock,
   );
 
+  // Pilihan tidak pernah dialihkan otomatis: default "Ambil hari ini"
+  // sejak awal (keranjang kosong pun). Kalau stok keranjang tidak
+  // terpenuhi (mis. berkurang oleh pembeli lain), jalur hari ini
+  // dikunci dan pesanan wajib pre-order — dengan banner penjelasan.
   const effectiveFulfillmentChoice =
-    rows.length === 0 || !canUseStockToday ? "PRE_ORDER" : fulfillmentChoice;
+    rows.length === 0 || canUseStockToday ? fulfillmentChoice : "PRE_ORDER";
   const isPickupToday = effectiveFulfillmentChoice === "STOCK";
   const scheduledAt = isPickupToday ? today : preorderDate;
 
@@ -369,14 +373,14 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
                     effectiveFulfillmentChoice === "STOCK"
                       ? "border-brand-dark bg-brand-bg"
                       : "border-brand-border"
-                  } ${!canUseStockToday ? "cursor-not-allowed opacity-60" : ""}`}
+                  } ${rows.length > 0 && !canUseStockToday ? "cursor-not-allowed opacity-60" : ""}`}
                 >
                   <input
                     type="radio"
                     name="fulfillment"
                     value="STOCK"
                     checked={effectiveFulfillmentChoice === "STOCK"}
-                    disabled={!canUseStockToday}
+                    disabled={rows.length > 0 && !canUseStockToday}
                     onChange={() => setFulfillmentChoice("STOCK")}
                     className="mt-0.5 accent-brand-dark"
                   />
@@ -531,7 +535,15 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
                                 onClick={() =>
                                   setCartQty(variant.id, quantity + 1)
                                 }
-                                disabled={quantity >= MAX_WEB_QTY}
+                                disabled={
+                                  quantity >= MAX_WEB_QTY ||
+                                  (isPickupToday && quantity >= sisa)
+                                }
+                                title={
+                                  isPickupToday && quantity >= sisa
+                                    ? "Maksimum stok hari ini"
+                                    : undefined
+                                }
                                 aria-label="Tambah"
                                 className="px-3 py-2 text-brand-text transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-30"
                               >
