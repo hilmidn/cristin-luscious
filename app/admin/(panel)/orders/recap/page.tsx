@@ -74,6 +74,7 @@ export default async function OrderRecapPage({ searchParams }: Props) {
       q: params.q?.trim() || undefined,
       from,
       to,
+      periodBasis: "closed",
     }),
     getOrderSources(),
     getRecapStats({ from, to }),
@@ -91,7 +92,7 @@ export default async function OrderRecapPage({ searchParams }: Props) {
         eyebrow="Laporan"
         title="Rekap"
         accent="pesanan"
-        description="Arsip pesanan yang sudah selesai atau dibatalkan, difilter per rentang tanggal ambil / kirim. Pesanan aktif tetap di halaman Pesanan."
+        description="Arsip pesanan yang sudah selesai atau dibatalkan, difilter per rentang tanggal penutupan. Pesanan aktif tetap di halaman Pesanan."
         actions={
           <Link
             href="/admin/orders"

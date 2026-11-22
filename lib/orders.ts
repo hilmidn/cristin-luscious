@@ -28,6 +28,8 @@ type OrderFilters = {
   /** Rentang tanggal WIB `YYYY-MM-DD` (menggantikan `month` bila keduanya ada). */
   from?: string;
   to?: string;
+  /** Kolom period: jadwal (default) atau waktu penutupan (rekap tertutup). */
+  periodBasis?: "schedule" | "closed";
   limit?: number;
 };
 
@@ -48,10 +50,20 @@ function monthFilter(monthKey: string): Prisma.OrderWhereInput {
 
 /** Pilih filter period: rentang tanggal bila lengkap, else bulan. */
 function periodFilter(
-  period: { month?: string; from?: string; to?: string } | null,
+  period: {
+    month?: string;
+    from?: string;
+    to?: string;
+    periodBasis?: "schedule" | "closed";
+  } | null,
 ): Prisma.OrderWhereInput | null {
   if (period?.from && period?.to) {
     const { start, end } = rangeFromKeys(period.from, period.to);
+
+    if (period.periodBasis === "closed") {
+      // Rekap tertutup berbasis waktu penutupan, bukan jadwal ambil/kirim.
+      return { closedAt: { gte: start, lt: end } };
+    }
 
     return {
       OR: [
@@ -324,7 +336,10 @@ export async function getRecapStats(
   period: { month?: string; from?: string; to?: string } | null,
 ): Promise<RecapStats> {
   const prisma = getPrisma();
-  const periodWhere = periodFilter(period) ?? {};
+  const periodWhere =
+    periodFilter(
+      period ? { ...period, periodBasis: "closed" as const } : null,
+    ) ?? {};
 
   const [selesai, dibatalkan, revenue, cancelled] = await Promise.all([
     prisma.order.count({ where: { status: "SELESAI", ...periodWhere } }),

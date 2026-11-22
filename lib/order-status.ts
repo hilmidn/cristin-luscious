@@ -46,7 +46,13 @@ export async function changeOrderStatus(
 
     await tx.order.update({
       where: { id: orderId },
-      data: { status },
+      data: {
+        status,
+        closedAt:
+          status === "SELESAI" || status === "DIBATALKAN"
+            ? new Date()
+            : null,
+      },
       select: { id: true },
     });
 
