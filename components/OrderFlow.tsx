@@ -563,6 +563,13 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
                                 {quantity - sisa}
                               </p>
                             )}
+
+                          {isPickupToday && sisa === 0 && (
+                            <p className="mt-2 border border-brand-border bg-brand-card px-3 py-1.5 font-sans text-[9px] font-semibold uppercase tracking-[0.14em] text-brand-text">
+                              Pre-order only — tidak tersedia untuk ambil hari
+                              ini
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -693,7 +700,6 @@ export default function OrderFlow({ products, stock: initialStock, today }: Orde
               products={products}
               stock={stock}
               intent={fulfillmentChoice}
-              onChoosePreOrder={() => setFulfillmentChoice("PRE_ORDER")}
               onClose={() => setShowAdd(false)}
             />
           )}
@@ -735,14 +741,12 @@ function AddProductSheet({
   products,
   stock,
   intent,
-  onChoosePreOrder,
   onClose,
 }: {
   products: CatalogProduct[];
   stock: Record<string, number>;
   /** Intent pemenuhan saat ini — gerbang stok hanya saat STOCK. */
   intent: "STOCK" | "PRE_ORDER";
-  onChoosePreOrder: () => void;
   onClose: () => void;
 }) {
   const snapshot = useSyncExternalStore(
@@ -751,23 +755,8 @@ function AddProductSheet({
     () => "",
   );
   const cart = useMemo(() => parseCartSnapshot(snapshot), [snapshot]);
-  const [confirmVariant, setConfirmVariant] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
 
   const pickupToday = intent === "STOCK";
-
-  const addVariant = (id: string, name: string, sisa: number) => {
-    // Varian tanpa stok saat intent ambil hari ini = gerbang sadar:
-    // menambahkannya mengubah seluruh pesanan jadi pre-order.
-    if (pickupToday && sisa === 0) {
-      setConfirmVariant({ id, name });
-      return;
-    }
-
-    setCartQty(id, 1);
-  };
 
   return (
     <div
@@ -775,49 +764,9 @@ function AddProductSheet({
       onClick={onClose}
     >
       <div
-        className="relative max-h-[85vh] w-full max-w-md overflow-y-auto border border-brand-border bg-brand-bg sm:max-h-[90vh]"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto border border-brand-border bg-brand-bg sm:max-h-[90vh]"
         onClick={(event) => event.stopPropagation()}
       >
-        {confirmVariant && (
-          <div
-            className="absolute inset-0 z-10 flex items-center justify-center bg-brand-dark/40 p-4"
-            onClick={() => setConfirmVariant(null)}
-          >
-            <div
-              className="w-full max-w-sm border border-brand-border bg-brand-bg p-5"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <p className="font-playfair text-lg font-bold text-brand-dark">
-                Pindah ke Pre-order?
-              </p>
-              <p className="mt-2 font-sans text-[11px] leading-relaxed text-brand-text">
-                <span className="font-semibold text-brand-dark">
-                  {confirmVariant.name}
-                </span>{" "}
-                tidak tersedia untuk ambil hari ini. Menambahkannya mengubah
-                seluruh pesanan menjadi Pre-order — paling cepat H+3.
-              </p>
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => setConfirmVariant(null)}
-                  className="flex-1 border border-brand-border px-4 py-2.5 font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-dark hover:border-brand-dark"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={() => {
-                    onChoosePreOrder();
-                    setCartQty(confirmVariant.id, 1);
-                    setConfirmVariant(null);
-                  }}
-                  className="flex-1 border border-brand-dark bg-brand-dark px-4 py-2.5 font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-bg hover:bg-transparent hover:text-brand-dark"
-                >
-                  Ya, Pre-order
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         {/* Header */}
         <div className="sticky top-0 flex items-center justify-between border-b border-brand-border bg-brand-bg px-5 py-4">
           <h3 className="font-playfair text-lg font-bold uppercase tracking-tight text-brand-dark">
@@ -881,10 +830,18 @@ function AddProductSheet({
 
                       {qty === 0 ? (
                         <button
-                          onClick={() => addVariant(variant.id, variant.name, sisa)}
+                          onClick={() => setCartQty(variant.id, 1)}
+                          disabled={pickupToday && sisa === 0}
+                          title={
+                            pickupToday && sisa === 0
+                              ? "Hanya via pre-order — pilih jalur Pre-order untuk menambah"
+                              : undefined
+                          }
                           className="shrink-0 border border-brand-dark bg-brand-dark px-3.5 py-2 font-sans text-[9px] font-semibold uppercase tracking-[0.18em] text-brand-bg transition-colors hover:bg-transparent hover:text-brand-dark disabled:cursor-not-allowed disabled:border-brand-border disabled:bg-transparent disabled:text-brand-muted"
                         >
-                          Tambah
+                          {pickupToday && sisa === 0
+                            ? "Pre-order only"
+                            : "Tambah"}
                         </button>
                       ) : (
                         <div className="flex shrink-0 items-center border border-brand-border bg-brand-card">
