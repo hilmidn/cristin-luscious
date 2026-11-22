@@ -10,6 +10,7 @@ import {
   type CatalogVariant,
 } from "@/lib/catalog-types";
 import { addToCart } from "@/lib/cart-store";
+import { useLiveStock } from "@/components/useLiveStock";
 
 interface Props {
   product: CatalogProduct;
@@ -35,8 +36,9 @@ export default function ProductDetailClient({
     selectedVariant?.image.trim() ? selectedVariant.image : product.image,
   );
   const activePrice = selectedVariant?.price ?? null;
+  const liveStock = useLiveStock(stock ?? {});
   const selectedStock =
-    selectedVariant && stock ? stock[selectedVariant.id] : undefined;
+    selectedVariant ? liveStock[selectedVariant.id] : undefined;
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
@@ -209,16 +211,16 @@ export default function ProductDetailClient({
                                 <p className="font-sans text-[10px] text-brand-text">
                                   {v.price}
                                 </p>
-                                {stock?.[v.id] !== undefined && (
+                                {liveStock[v.id] !== undefined && (
                                     <span
                                       className={`text-[8px] tracking-widest uppercase px-2 py-0.5 border ${
-                                        (stock[v.id] ?? 0) > 0
+                                        (liveStock[v.id] ?? 0) > 0
                                           ? "bg-brand-card border-brand-border text-brand-dark"
                                           : "bg-brand-bg border-brand-border text-brand-muted"
                                       }`}
                                     >
-                                      {(stock[v.id] ?? 0) > 0
-                                        ? `Stok hari ini ${stock[v.id]}`
+                                      {(liveStock[v.id] ?? 0) > 0
+                                        ? `Stok hari ini ${liveStock[v.id]}`
                                         : "Pre-order tersedia"}
                                     </span>
                                   )}

@@ -10,6 +10,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { submitWebOrder } from "@/app/(site)/order/actions";
+import { useLiveStock } from "@/components/useLiveStock";
 import {
   cartTotalQty,
   clearCart,
@@ -67,7 +68,9 @@ type CartRow = {
   quantity: number;
 };
 
-export default function OrderFlow({ products, stock, today }: OrderFlowProps) {
+export default function OrderFlow({ products, stock: initialStock, today }: OrderFlowProps) {
+  // Stok live: poll 20s + refetch saat tab kembali aktif.
+  const stock = useLiveStock(initialStock);
   const [isPending, startTransition] = useTransition();
   const minimumPreorderDate = minimumPreOrderDate(
     new Date(`${today}T00:00:00+07:00`),
