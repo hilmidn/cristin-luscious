@@ -136,6 +136,8 @@ model Order {
   status         OrderStatus @default(BARU)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+  // Waktu pesanan ditutup (masuk SELESAI / DIBATALKAN) — basis rekap tertutup.
+  closedAt       DateTime?
 
   items               OrderItem[]
   productionTasks     ProductionTask[]

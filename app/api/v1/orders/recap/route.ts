@@ -57,6 +57,7 @@ export async function GET(request: Request) {
         month: period?.month,
         from: period?.from,
         to: period?.to,
+        periodBasis: "closed",
       }),
       getRecapStats(period),
     ]);
